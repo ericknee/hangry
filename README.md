@@ -1,4 +1,4 @@
-# TableTalk (Hangry)
+# Hangry
 
 Group & solo restaurant decision agent — LangGraph-orchestrated adaptive
 preference elicitation and fair-consensus aggregation.
