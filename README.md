@@ -16,7 +16,7 @@ one lockfile, shared tooling, `api` depends on `agent` as a local editable packa
 ## First-time setup
 
 ```bash
-cp .env.example .env        # fill in ANTHROPIC_API_KEY and GOOGLE_PLACES_API_KEY
+cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY (the others are optional for now)
 docker compose up -d        # starts Postgres on localhost:5432
 uv sync --all-packages      # installs both packages + dev deps into one venv
 uv run python scripts/smoke_test.py   # verifies graph + both API keys work

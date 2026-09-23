@@ -77,9 +77,10 @@ async function runLine(line) {
         break;
       }
       case "fill": {
+        // No value (`fill <selector>`) clears the field.
         const sp = arg.indexOf(" ");
-        const sel = arg.slice(0, sp);
-        const value = arg.slice(sp + 1);
+        const sel = sp === -1 ? arg : arg.slice(0, sp);
+        const value = sp === -1 ? "" : arg.slice(sp + 1);
         await page.fill(sel, value, { timeout: 10000 });
         log(`[fill] ${sel} = ${value}`);
         break;
