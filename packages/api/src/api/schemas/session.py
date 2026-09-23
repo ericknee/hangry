@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class LocationInput(BaseModel):
@@ -18,7 +18,7 @@ class CreateSessionRequest(BaseModel):
     mode: str  # "solo" | "group"
     initial_query: str
     location: LocationInput | None = None
-    radius_km: float | None = None
+    radius_km: float | None = Field(default=None, gt=0, le=50)
 
 
 class SessionResponse(BaseModel):
