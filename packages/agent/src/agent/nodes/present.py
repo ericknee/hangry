@@ -7,7 +7,7 @@ of why the shortlist fits everyone, not just the average member.
 from __future__ import annotations
 
 from agent.clients.claude import ClaudeClient
-from agent.state import TableTalkState
+from agent.state import HangryState
 
 _claude: ClaudeClient | None = None
 
@@ -21,7 +21,7 @@ def _get_claude() -> ClaudeClient:
     return _claude
 
 
-async def present_shortlist(state: TableTalkState) -> TableTalkState:
+async def present_shortlist(state: HangryState) -> HangryState:
     shortlist = state["candidates"][:SHORTLIST_SIZE]
     state["shortlist"] = shortlist
 

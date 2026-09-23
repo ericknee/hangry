@@ -19,5 +19,5 @@ class SessionRecord(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     mode: Mapped[str] = mapped_column(String)  # "solo" | "group"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    state: Mapped[dict] = mapped_column(JSON)  # last-known TableTalkState snapshot
+    state: Mapped[dict] = mapped_column(JSON)  # last-known HangryState snapshot
     final_pick_place_id: Mapped[str | None] = mapped_column(String, nullable=True)

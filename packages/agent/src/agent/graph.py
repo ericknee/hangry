@@ -1,4 +1,4 @@
-"""Builds the TableTalk graph.
+"""Builds the Hangry graph.
 
     Start -> elicit (parallel Send per member) -> aggregate & retrieve
           -> consensus reached? --no--> back to elicit (targeted follow-up)
@@ -15,15 +15,15 @@ from langgraph.graph import END, StateGraph
 from langgraph.types import Send
 
 from agent.nodes import aggregate_and_retrieve, elicit_member, present_shortlist
-from agent.state import TableTalkState
+from agent.state import HangryState
 
 
-def _fan_out_to_members(state: TableTalkState) -> list[Send]:
+def _fan_out_to_members(state: HangryState) -> list[Send]:
     """Parallel Send: one elicit_member branch per member, independent of the others."""
     return [Send("elicit", member) for member in state["members"]]
 
 
-def _consensus_reached(state: TableTalkState) -> str:
+def _consensus_reached(state: HangryState) -> str:
     """Conditional edge: route back for another round, or move to present.
 
     Routes based on whichever member's constraints are currently blocking
@@ -41,7 +41,7 @@ def _consensus_reached(state: TableTalkState) -> str:
 
 
 def build_graph():
-    graph = StateGraph(TableTalkState)
+    graph = StateGraph(HangryState)
 
     graph.add_node("elicit", elicit_member)
     graph.add_node("aggregate", aggregate_and_retrieve)

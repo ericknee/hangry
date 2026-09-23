@@ -1,7 +1,7 @@
 [project]
 name = "api"
 version = "0.1.0"
-description = "TableTalk FastAPI service — session routing, auth, live group updates"
+description = "Hangry FastAPI service — session routing, auth, live group updates"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",

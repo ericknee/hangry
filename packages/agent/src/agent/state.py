@@ -1,4 +1,4 @@
-"""Shared state object carried through the TableTalk LangGraph graph.
+"""Shared state object carried through the Hangry LangGraph graph.
 
 Solo mode is not a different graph — it is this same graph invoked with
 `members` of length 1, so the aggregation node becomes a no-op pass-through
@@ -47,7 +47,7 @@ class Candidate(TypedDict):
     reason: str | None
 
 
-class TableTalkState(TypedDict):
+class HangryState(TypedDict):
     """The full graph state. Solo mode sets `members` to length 1."""
 
     session_id: str

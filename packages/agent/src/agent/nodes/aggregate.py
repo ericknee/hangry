@@ -9,12 +9,12 @@ maximin, pending the synthetic-scenario results — see aggregation/__init__.py)
 from __future__ import annotations
 
 from agent.aggregation import maximin
-from agent.state import Candidate, TableTalkState
+from agent.state import Candidate, HangryState
 
 DEFAULT_STRATEGY = maximin.score
 
 
-async def aggregate_and_retrieve(state: TableTalkState) -> TableTalkState:
+async def aggregate_and_retrieve(state: HangryState) -> HangryState:
     # TODO: real Places retrieval + per-member re-ranking goes here.
     candidates: list[Candidate] = state["candidates"]
 
