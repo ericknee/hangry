@@ -1,0 +1,9 @@
+{
+  "name": "run-hangry-driver",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
