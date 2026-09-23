@@ -14,16 +14,21 @@ import asyncio
 from agent.clients.claude import ClaudeClient
 from agent.clients.places import PlacesClient
 from agent.graph import build_graph
+from api.core.config import get_settings
 
 
 async def check_places() -> None:
-    client = PlacesClient()
-    results = await client.search_text("pizza", lat=40.7484, lng=-73.9857)
+    async with PlacesClient(api_key=get_settings().google_places_api_key) as client:
+        results = await client.search_text("pizza", lat=40.7484, lng=-73.9857)
     print(f"[places]  OK — {len(results)} result(s)")
 
 
 async def check_claude() -> None:
-    client = ClaudeClient()
+    api_key = get_settings().anthropic_api_key
+    if api_key is None:
+        print("[claude]  SKIPPED — ANTHROPIC_API_KEY not set")
+        return
+    client = ClaudeClient(api_key=api_key)
     result = await client.generate_question(context="craving something quick")
     print(f"[claude]  OK — got response: {bool(result)}")
 

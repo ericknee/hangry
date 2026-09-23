@@ -1,7 +1,7 @@
 [project]
 name = "hangry"
 version = "0.1.0"
-description = "TableTalk — group & solo restaurant decision agent"
+description = "Hangry — group & solo restaurant decision agent"
 requires-python = ">=3.12"
 dependencies = []
 
