@@ -1,0 +1,11 @@
+{
+  "name": "hangry",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -n api,client -c blue,green \"uv run python -m uvicorn api.main:app --reload --app-dir packages/api/src\" \"npm run dev --prefix client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
