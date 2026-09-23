@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { createSession } from "../api/sessions";
+import { useEffect, useRef, useState } from "react";
+import { autocompleteCities, getCityLocation, type CityPrediction } from "../api/places";
+import { createSession, type LocationInput } from "../api/sessions";
 
 const KM_TO_MI = 0.621371;
 const MIN_KM = 0.5;
@@ -41,16 +42,57 @@ function CravingIcon() {
 }
 
 export default function HomePage() {
-  const [location, setLocation] = useState("");
+  const [locationText, setLocationText] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<LocationInput | null>(null);
+  const [predictions, setPredictions] = useState<CityPrediction[]>([]);
+  const [showPredictions, setShowPredictions] = useState(false);
   const [unit, setUnit] = useState<"km" | "mi">("km");
   const [distanceKm, setDistanceKm] = useState(3);
   const [craving, setCraving] = useState("");
+  const requestId = useRef(0);
 
   const displayDistance =
     unit === "km" ? distanceKm : Math.round(distanceKm * KM_TO_MI * 10) / 10;
 
+  useEffect(() => {
+    const id = ++requestId.current;
+    const timer = setTimeout(async () => {
+      if (selectedLocation || locationText.trim().length < 2) {
+        if (requestId.current === id) setPredictions([]);
+        return;
+      }
+      try {
+        const results = await autocompleteCities(locationText);
+        if (requestId.current === id) setPredictions(results);
+      } catch {
+        if (requestId.current === id) setPredictions([]);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [locationText, selectedLocation]);
+
+  async function selectPrediction(prediction: CityPrediction) {
+    setPredictions([]);
+    setShowPredictions(false);
+    const city = await getCityLocation(prediction.place_id);
+    // Set together so the debounce effect sees a non-null selectedLocation in
+    // the same render as the locationText change, and skips re-fetching.
+    setLocationText(prediction.description);
+    setSelectedLocation({
+      place_id: city.place_id,
+      lat: city.lat,
+      lng: city.lng,
+      formatted_address: city.formatted_address,
+    });
+  }
+
   async function handleNext() {
-    const session = await createSession("solo", craving);
+    const session = await createSession({
+      mode: "solo",
+      initialQuery: craving,
+      location: selectedLocation,
+      radiusKm: distanceKm,
+    });
     window.location.href = `/session/${session.session_id}`;
   }
 
@@ -59,16 +101,38 @@ export default function HomePage() {
       <div className="flex w-full max-w-md flex-col gap-4">
         <h1 className="text-center text-4xl font-medium text-blue-950">Hangry?</h1>
 
-        <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-3 shadow-sm">
-          <IconBadge>
-            <PinIcon />
-          </IconBadge>
-          <input
-            className="w-full bg-transparent text-blue-900 placeholder:text-blue-300 focus:outline-none"
-            placeholder="Enter your location..."
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
+        <div className="relative">
+          <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-3 shadow-sm">
+            <IconBadge>
+              <PinIcon />
+            </IconBadge>
+            <input
+              className="w-full bg-transparent text-blue-900 placeholder:text-blue-300 focus:outline-none"
+              placeholder="Enter your location..."
+              value={locationText}
+              onChange={(e) => {
+                setLocationText(e.target.value);
+                setSelectedLocation(null);
+              }}
+              onFocus={() => setShowPredictions(true)}
+              onBlur={() => setTimeout(() => setShowPredictions(false), 150)}
+            />
+          </div>
+          {showPredictions && predictions.length > 0 && (
+            <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-2xl bg-white shadow-md">
+              {predictions.map((prediction) => (
+                <li key={prediction.place_id}>
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 text-left text-sm text-blue-900 hover:bg-blue-50"
+                    onMouseDown={() => selectPrediction(prediction)}
+                  >
+                    {prediction.description}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white/80 p-5 shadow-sm">

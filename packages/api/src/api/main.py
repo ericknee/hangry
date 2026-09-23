@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import sessions
+from api.routers import places, sessions
 
-app = FastAPI(title="TableTalk API")
+app = FastAPI(title="Hangry API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +13,7 @@ app.add_middleware(
 )
 
 app.include_router(sessions.router)
+app.include_router(places.router)
 
 
 @app.get("/health")
