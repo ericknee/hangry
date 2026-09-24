@@ -1,0 +1,127 @@
+{
+  "info": {
+    "name": "Hangry API",
+    "description": "Local Hangry FastAPI service. Start it with:\n\n  uv run uvicorn api.main:app --reload --app-dir packages/api/src\n\nRun the requests in order: Autocomplete saves the first city's place_id, City location saves its lat/lng, and Create session uses them.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "cityQuery", "value": "San Francisco" },
+    { "key": "placeId", "value": "" },
+    { "key": "lat", "value": "37.7749" },
+    { "key": "lng", "value": "-122.4194" },
+    { "key": "formattedAddress", "value": "San Francisco, CA, USA" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Places",
+      "item": [
+        {
+          "name": "Autocomplete cities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const results = pm.response.json();",
+                  "if (Array.isArray(results) && results.length > 0) {",
+                  "  pm.collectionVariables.set('placeId', results[0].place_id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/places/autocomplete?input={{cityQuery}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["places", "autocomplete"],
+              "query": [{ "key": "input", "value": "{{cityQuery}}" }]
+            },
+            "description": "Calls Google Places Autocomplete (New). Billed per request."
+          }
+        },
+        {
+          "name": "City location",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const city = pm.response.json();",
+                  "  pm.collectionVariables.set('lat', city.lat);",
+                  "  pm.collectionVariables.set('lng', city.lng);",
+                  "  pm.collectionVariables.set('formattedAddress', city.formatted_address || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/places/cities/{{placeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["places", "cities", "{{placeId}}"]
+            },
+            "description": "Resolves a place_id from Autocomplete to coordinates (Google Place Details). Billed per request."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create session (with location)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"solo\",\n  \"initial_query\": \"sushi\",\n  \"location\": {\n    \"place_id\": \"{{placeId}}\",\n    \"lat\": {{lat}},\n    \"lng\": {{lng}},\n    \"formatted_address\": \"{{formattedAddress}}\"\n  },\n  \"radius_km\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions"]
+            },
+            "description": "Runs a Google Places Text Search for candidates (billed). radius_km must be > 0 and <= 50."
+          }
+        },
+        {
+          "name": "Create session (no location)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mode\": \"solo\",\n  \"initial_query\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["sessions"]
+            },
+            "description": "No location means no Places call; returns an empty candidate list."
+          }
+        }
+      ]
+    }
+  ]
+}
