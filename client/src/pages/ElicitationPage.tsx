@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import TapOptionQuestion from "../components/TapOptionQuestion";
+import QuestionPage from "./QuestionPage";
 
 export default function ElicitationPage() {
   const { sessionId } = useParams();
@@ -12,13 +12,11 @@ export default function ElicitationPage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
-      <p className="text-sm text-gray-500">Session {sessionId}</p>
-      <TapOptionQuestion
-        question={placeholderQuestion.question}
-        options={placeholderQuestion.options}
-        onSelect={(option) => console.log("selected", option)}
-      />
-    </main>
+    <QuestionPage
+      caption={`Session ${sessionId}`}
+      question={placeholderQuestion.question}
+      options={placeholderQuestion.options}
+      onSelect={(option) => console.log("selected", option)}
+    />
   );
 }

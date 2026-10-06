@@ -1,9 +1,8 @@
 """Thin async client for the Google Places API (New).
 
-Uses field masks deliberately: Essentials-tier fields for bulk search so
-early candidate retrieval stays free, and Pro/Enterprise fields (ratings,
-reviews, photos) only when building the final shortlist. See the project
-doc's "APIs & feasibility" section for the tier breakdown.
+Text Search is billed at the highest tier of any requested field. We use one
+Enterprise-tier search per session (rating, price level), no Atmosphere fields
+and no photos. See docs/filtering-plan.md for the tier and cost breakdown.
 """
 
 from __future__ import annotations
@@ -14,8 +13,12 @@ import httpx
 
 PLACES_BASE_URL = "https://places.googleapis.com/v1"
 
-# Essentials tier — safe to request on every bulk search call.
-SEARCH_FIELD_MASK = "places.id,places.displayName,places.formattedAddress,places.location"
+# Enterprise tier (rating and priceLevel set the tier) — the one search per session.
+SEARCH_FIELD_MASK = (
+    "places.id,places.displayName,places.formattedAddress,places.location,"
+    "places.primaryType,places.businessStatus,places.googleMapsUri,"
+    "places.rating,places.userRatingCount,places.priceLevel"
+)
 
 # Pro/Enterprise tier — request only for the handful of shortlist finalists.
 DETAIL_FIELD_MASK = "id,displayName,formattedAddress,rating,priceLevel,userRatingCount,photos"
@@ -58,16 +61,36 @@ class PlacesClient:
         await self.aclose()
 
     async def search_text(
-        self, query: str, *, lat: float, lng: float, radius_m: int = 5000
+        self,
+        query: str,
+        *,
+        lat: float,
+        lng: float,
+        radius_m: int = 5000,
+        included_type: str | None = None,
+        price_levels: list[str] | None = None,
+        min_rating: float | None = None,
+        open_now: bool = False,
     ) -> list[dict]:
-        """Bulk text search restricted to the radius's bounding box, Essentials fields only."""
+        """One page (max 20) of text search results inside the radius's bounding box."""
+        body: dict = {
+            "textQuery": query,
+            "locationRestriction": _bounding_box(lat, lng, radius_m),
+            "pageSize": 20,
+        }
+        if included_type:
+            body["includedType"] = included_type
+            body["strictTypeFiltering"] = True
+        if price_levels:
+            body["priceLevels"] = price_levels
+        if min_rating is not None:
+            body["minRating"] = min_rating
+        if open_now:
+            body["openNow"] = True
         resp = await self._http.post(
             "/places:searchText",
             headers={"X-Goog-FieldMask": SEARCH_FIELD_MASK},
-            json={
-                "textQuery": query,
-                "locationRestriction": _bounding_box(lat, lng, radius_m),
-            },
+            json=body,
         )
         resp.raise_for_status()
         return resp.json().get("places", [])

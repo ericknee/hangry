@@ -1,28 +1,58 @@
+from typing import Annotated, Literal
+
 from pydantic import BaseModel, Field
 
 
 class LocationInput(BaseModel):
-    place_id: str
+    # Absent for "Current location", which comes from the browser rather than Places.
+    place_id: str | None = None
     lat: float
     lng: float
     formatted_address: str | None = None
-
-
-class CandidateOut(BaseModel):
-    place_id: str
-    name: str
-    address: str
 
 
 class CreateSessionRequest(BaseModel):
     mode: str  # "solo" | "group"
     initial_query: str
     location: LocationInput | None = None
-    radius_km: float | None = Field(default=None, gt=0, le=50)
 
 
 class SessionResponse(BaseModel):
     session_id: str
     mode: str
     share_url: str | None = None
-    candidates: list[CandidateOut] = []
+
+
+class SearchRequest(BaseModel):
+    """The setup answers, sent in one call after the last setup page."""
+
+    after: Literal["breakfast", "lunch", "dinner", "coffee_dessert", "drinks"]
+    # 1 = "$" ... 4 = "$$$$"; empty means any price.
+    price_levels: list[Annotated[int, Field(ge=1, le=4)]] = []
+    dietary: Literal["none", "vegetarian", "vegan", "halal"] = "none"
+    mode: Literal["walk", "drive"]
+    minutes: int = Field(ge=5, le=60)
+
+
+class SearchResponse(BaseModel):
+    count: int
+
+
+class RestaurantOut(BaseModel):
+    """User-facing details of one candidate; internal fields (scores, ids of members) stay out."""
+
+    place_id: str
+    name: str
+    address: str
+    cuisine: str | None = None
+    rating: float | None = None
+    rating_count: int | None = None
+    price_level: int | None = None
+    distance_m: float | None = None
+    maps_uri: str | None = None
+
+
+class ResultsResponse(BaseModel):
+    """All candidates, best first. The client shows the first 3, then the rest on request."""
+
+    restaurants: list[RestaurantOut]

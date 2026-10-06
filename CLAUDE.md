@@ -25,9 +25,10 @@ in `packages/api/pyproject.toml`).
 First-time setup:
 
 ```bash
-cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY (the others are optional for now)
+cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY; DATABASE_URL is required too (the default matches docker-compose)
 docker compose up -d        # starts Postgres on localhost:5432
 uv sync --all-packages      # installs both packages + dev deps into one venv
+uv run python -m alembic -c packages/api/alembic.ini upgrade head   # creates the sessions table
 uv run python scripts/smoke_test.py   # verifies graph + both API keys work
 
 cd client && npm install && npm run dev   # frontend on http://localhost:5173
@@ -97,10 +98,16 @@ the `STRATEGIES` map and must be invoked separately.
   adaptive elicitation question + tap options, and writing the shortlist explanation. By design,
   elicitation answers are tap-selected from generated options, not free-typed — there's no
   free-text NLU surface to build here; don't add one.
-- `agent/clients/places.py` — Google Places API (New) client. Deliberately uses two field masks:
-  `SEARCH_FIELD_MASK` (Essentials tier, cheap) for bulk candidate search, `DETAIL_FIELD_MASK`
-  (Pro/Enterprise tier) only for the handful of shortlist finalists. Keep new Places calls on the
-  cheaper mask unless they genuinely need Pro-tier fields (rating, reviews, photos).
+- `agent/clients/places.py` — Google Places API (New) client. Text Search is billed at the highest
+  tier of any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs
+  once per session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill —
+  check `docs/filtering-plan.md` before changing the mask. `DETAIL_FIELD_MASK`/`get_details` are
+  currently unused.
+- `agent/search_params.py` turns setup answers into search parameters (one place type only:
+  dietary wins it; the query is the craving if typed, else the default text for the winning type;
+  walk/drive minutes become a radius).
+  `agent/retrieval.py` runs the search (open now, rating floor 3.5, one retry at 3.0 if under 5
+  results) and maps places to `Candidate`s.
 
 ## API / persistence
 
@@ -108,19 +115,27 @@ the `STRATEGIES` map and must be invoked separately.
   build_graph()`) and reuses it per request.
 - DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Phase 1 scope is
   session logs only (`SessionRecord`: id, mode, created_at, last-known state snapshot as JSON, final
-  pick). No Alembic migrations exist yet — schema currently relies on `Base.metadata.create_all`;
-  see `api/db/migrations/README.md` for when/how to scaffold Alembic (`alembic init .` from
-  `packages/api/`) once the schema is ready to be migrated for real.
+  pick). Schema changes go through Alembic (`packages/api/alembic.ini`, migrations in
+  `api/db/migrations/`); run it from the repo root — see `api/db/migrations/README.md`.
+  `create_session` inserts a row (initial query + location, coordinates rounded to 3 decimals, ~110 m); later
+  steps will update it with setup answers, results and the final pick.
 - `api/ws/manager.py` (`SessionConnectionManager`) broadcasts live per-session updates (e.g. "2 of 3
   members done") over WebSocket as parallel elicit branches complete.
 - Settings (`api/core/config.py`) load from `.env` via `pydantic-settings`; Only
-  `google_places_api_key` is required; `database_url` and `anthropic_api_key` are temporarily
-  optional (nothing in the API uses the DB or Claude yet) — make them required again once wired.
+  `google_places_api_key` and `database_url` are required; `anthropic_api_key` is optional
+  (nothing uses Claude yet). Tests set dummy values in `packages/api/tests/conftest.py`.
 
 ## Frontend
 
-React Router pages under `client/src/pages/`: `HomePage` (create session) → `ElicitationPage`
-(`/session/:sessionId`, tap-option question flow) → `ShortlistPage` (`/session/:sessionId/shortlist`).
+React Router pages under `client/src/pages/`: `LocationPage` (`/`, location search with a "Current
+location" dropdown entry; choice held in `sessionStorage` via `lib/pendingLocation.ts`) →
+`SearchPage` (`/search`, optional craving text; Next creates the session) → four setup pages under
+`pages/setup/` (`/session/:sessionId/setup/{after,price,dietary,travel}`, one question each, answers
+held in `sessionStorage` via `lib/setupAnswers.ts`; the last one runs the search behind a loading
+screen) → `ElicitationPage` (`/session/:sessionId`, tap-option question flow; still a placeholder,
+not routed to yet; the veto step is skipped for now) → `ShortlistPage`
+(`/session/:sessionId/shortlist`: swipeable `CardDeck` of `RestaurantCard`s, top 3 first, "More
+recommendations" appends the rest).
 `client/src/api/sessions.ts` calls the backend at `/api/sessions` (expects a dev proxy or same-origin
 deploy — there's no absolute API base URL configured). Elicitation UI is tap-to-select
 (`TapOptionQuestion` component), matching the "no free-text NLU" decision on the backend.
@@ -131,5 +146,12 @@ deploy — there's no absolute API base URL configured). Elicitation UI is tap-t
   expected-information-gain stopping rule yet.
 - `aggregate_and_retrieve` scores whatever candidates are already in state — no real Places
   retrieval/re-ranking wired in yet.
-- `sessions.py`'s `create_session` doesn't persist a `SessionRecord` or invoke the graph yet.
+- `sessions.py`: `create_session` only inserts the initial `SessionRecord`. `POST
+  /sessions/{id}/search` takes the setup answers, runs the one Places search, keeps candidates in a
+  30-minute in-memory cache (`core/candidate_cache.py`; Google's terms limit stored Places content,
+  so they are never written to the DB) and records the setup answers on the row. The client calls it
+  from the last setup page (`TravelPage`); the graph is not invoked yet. `GET
+  /sessions/{id}/results` returns the cached candidates ranked by `agent/ranking.py` (Bayesian
+  average of rating, prior weight 50 reviews, pool-average prior; unrated last; distance breaks
+  ties); 404 once the cache entry has expired.
 - `ElicitationPage` renders a hardcoded placeholder question instead of fetching one.

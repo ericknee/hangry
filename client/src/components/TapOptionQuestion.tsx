@@ -15,13 +15,13 @@ export default function TapOptionQuestion({
   onSelect,
 }: TapOptionQuestionProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-medium">{question}</h2>
-      <div className="grid grid-cols-2 gap-3">
+    <div className="flex flex-col gap-4">
+      <h2 className="text-xl font-medium text-blue-950">{question}</h2>
+      <div className="flex flex-wrap gap-3">
         {options.map((option) => (
           <button
             key={option}
-            className="rounded-lg border p-4 text-left text-base hover:bg-gray-50 active:bg-gray-100"
+            className="rounded-full bg-white/80 px-5 py-3 text-base text-blue-900 shadow-sm hover:bg-white active:bg-blue-50"
             onClick={() => onSelect(option)}
           >
             {option}
