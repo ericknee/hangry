@@ -12,11 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=REPO_ROOT / ".env", extra="ignore")
 
     database_url: str
-    # Optional: nothing in the API uses Claude yet.
-    anthropic_api_key: str | None = None
     google_places_api_key: str
-    consensus_threshold: float = 0.7
-    max_rounds: int = 4
 
 
 @lru_cache

@@ -3,7 +3,6 @@ from typing import Annotated
 
 import httpx
 from agent.clients.places import PlacesClient
-from agent.graph import build_graph
 from agent.ranking import rank_candidates
 from agent.retrieval import retrieve_candidates
 from agent.search_params import build_search_params
@@ -24,8 +23,6 @@ from api.schemas.session import (
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
-
-_graph = build_graph()
 
 # 3 decimals is roughly 110 m: coarse enough to hide the exact spot, fine enough
 # that the later search (which reads these stored coordinates) is off by <~80 m.
@@ -124,4 +121,4 @@ async def session_results(
     )
 
 
-# TODO: update the row with the final pick, and invoke `_graph`.
+# TODO: update the row with the final pick.

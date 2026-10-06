@@ -1,3 +1,4 @@
+import { apiRequest } from "./http";
 import type { PendingLocation } from "../lib/pendingLocation";
 import type { SetupAnswers } from "../lib/setupAnswers";
 
@@ -25,19 +26,16 @@ export async function searchSession(
   answers: SetupAnswers,
 ): Promise<SearchResponse> {
   if (answers.after === null) throw new Error("Setup is incomplete: missing 'after'");
-  const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/search`, {
+  return apiRequest<SearchResponse>(`/api/sessions/${encodeURIComponent(sessionId)}/search`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    body: {
       after: answers.after,
       price_levels: answers.priceLevels,
       dietary: answers.dietary,
       mode: answers.mode,
       minutes: answers.minutes,
-    }),
+    },
   });
-  if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-  return res.json();
 }
 
 export interface Restaurant {
@@ -54,21 +52,19 @@ export interface Restaurant {
 
 /** All search results for the session, best first. Rejects if they expired or never existed. */
 export async function getResults(sessionId: string): Promise<Restaurant[]> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/results`);
-  if (!res.ok) throw new Error(`Results failed: ${res.status}`);
-  return (await res.json()).restaurants;
+  const { restaurants } = await apiRequest<{ restaurants: Restaurant[] }>(
+    `/api/sessions/${encodeURIComponent(sessionId)}/results`,
+  );
+  return restaurants;
 }
 
 export async function createSession(params: CreateSessionParams): Promise<CreateSessionResponse> {
-  const res = await fetch("/api/sessions", {
+  return apiRequest<CreateSessionResponse>("/api/sessions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    body: {
       mode: params.mode,
       initial_query: params.initialQuery,
       location: params.location ?? null,
-    }),
+    },
   });
-  if (!res.ok) throw new Error(`Failed to create session: ${res.status}`);
-  return res.json();
 }

@@ -148,7 +148,8 @@ export default function LocationPage() {
 
         <button
           type="button"
-          className="mt-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 py-4 font-medium text-white shadow-md transition-opacity hover:opacity-90"
+          className="mt-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 py-4 font-medium text-white shadow-md transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-300 disabled:opacity-100 disabled:shadow-none"
+          disabled={selectedLocation === null}
           onClick={handleNext}
         >
           Next

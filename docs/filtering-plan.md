@@ -1,6 +1,8 @@
 # Filtering plan: LLM-free v1
 
-Status: proposed, not built. Steps 1–2 (question types, `questions.py`, tests) are done.
+Status: the solo MVP is built (see "Implementation status" and "Decided for v1" below). The sections
+before "Decided for v1" are the original plan: group sessions, the LangGraph graph and aggregation
+strategies mentioned there were removed from the code as unused and remain in git history.
 
 ## Goals
 
@@ -71,27 +73,16 @@ Rating adjusted for review count (so 5 stars from 3 reviews does not beat 4.6 fr
 
 Caching candidates by area for a few hours could cut volume below one search per session. Check Google's terms on storing Places data first; `place_id` is explicitly storable.
 
-## Code changes
+## Implementation status
 
-- `clients/places.py`: Enterprise field mask, new filter params on `search_text`.
-- `state.py`: candidate fields for rating, review count, hours; member setup answers.
-- `questions.py`: pool of cuisine and distance vetoes (price moves to setup).
-- `graph.py`: retrieval before elicitation.
-- `nodes/elicit.py`: static question selection instead of Claude.
-- `nodes/aggregate.py`, `nodes/present.py`: ranking and templated reasons.
-- Remove `clients/claude.py`, the API key setting and dependency.
-- Update CLAUDE.md (LLM clients section, "no free-text NLU" becomes "no LLM", graph flow).
-- Later: API endpoints for next question / submit answer; wire `ElicitationPage` and `ShortlistPage`.
-
-## Build order
-
-1. ~~`Question` type and state fields~~ done
-2. ~~Question pool and split scoring, with tests~~ done
-3. Places client filters and Enterprise mask
-4. Graph reorder, retrieval first; rewire `elicit_member`
-5. Aggregation ranking and templated reasons
-6. API endpoints, then frontend
-7. Remove Claude client; update docs
+- [x] Places client: Enterprise field mask and filter params (`clients/places.py`)
+- [x] Query building, retrieval with retry, ranking (`search_params.py`, `retrieval.py`, `ranking.py`)
+- [x] Search and results endpoints, in-memory candidate cache, session recording, Alembic
+- [x] Frontend: location, craving, four setup pages, loading screen, swipeable shortlist
+- [x] Removed the unused LangGraph graph, aggregation strategies, Claude client, websocket manager,
+      old question pages, smoke test, and their dependencies and settings
+- [ ] Cuisine veto step (`questions.py` selection logic exists; no endpoint or page)
+- [ ] Verification against live Google Places and Postgres
 
 ## Decided for v1 (solo only; no invite option)
 

@@ -1,5 +1,4 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import ElicitationPage from "./pages/ElicitationPage";
 import LocationPage from "./pages/LocationPage";
 import SearchPage from "./pages/SearchPage";
 import AfterPage from "./pages/setup/AfterPage";
@@ -18,7 +17,6 @@ export default function App() {
         <Route path="/session/:sessionId/setup/price" element={<PricePage />} />
         <Route path="/session/:sessionId/setup/dietary" element={<DietaryPage />} />
         <Route path="/session/:sessionId/setup/travel" element={<TravelPage />} />
-        <Route path="/session/:sessionId" element={<ElicitationPage />} />
         <Route path="/session/:sessionId/shortlist" element={<ShortlistPage />} />
       </Routes>
     </BrowserRouter>
