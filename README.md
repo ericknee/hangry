@@ -37,3 +37,15 @@ uv run pytest              # run all tests across both packages
 uv run ruff check .        # lint
 uv run ruff format .       # format
 ```
+
+## Start Frontend
+```bash
+# From hangry/client/
+npm run dev
+```
+
+## Start Backend
+```bash
+# From hangry/
+npm run be
+```

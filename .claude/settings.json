@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/build-check.mjs",
+            "timeout": 120,
+            "statusMessage": "Checking frontend build..."
+          }
+        ]
+      }
+    ]
+  }
+}
