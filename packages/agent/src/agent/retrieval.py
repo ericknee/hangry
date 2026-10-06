@@ -48,9 +48,7 @@ def _to_candidates(places: list[dict], lat: float, lng: float) -> list[Candidate
                 ),
                 rating_count=p.get("userRatingCount"),
                 maps_uri=p.get("googleMapsUri"),
-                member_scores={},
                 aggregate_score=None,
-                reason=None,
             )
         )
     return candidates

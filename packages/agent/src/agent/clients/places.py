@@ -20,9 +20,6 @@ SEARCH_FIELD_MASK = (
     "places.rating,places.userRatingCount,places.priceLevel"
 )
 
-# Pro/Enterprise tier — request only for the handful of shortlist finalists.
-DETAIL_FIELD_MASK = "id,displayName,formattedAddress,rating,priceLevel,userRatingCount,photos"
-
 # Essentials tier — just enough to resolve a chosen city to coordinates.
 LOCATION_FIELD_MASK = "id,displayName,formattedAddress,location"
 
@@ -127,12 +124,3 @@ class PlacesClient:
             "lng": location["longitude"],
             "formatted_address": data.get("formattedAddress", ""),
         }
-
-    async def get_details(self, place_id: str) -> dict:
-        """Full detail fetch, Pro/Enterprise fields — call sparingly."""
-        resp = await self._http.get(
-            f"/places/{place_id}",
-            headers={"X-Goog-FieldMask": DETAIL_FIELD_MASK},
-        )
-        resp.raise_for_status()
-        return resp.json()

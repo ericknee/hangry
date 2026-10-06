@@ -35,8 +35,5 @@ class Candidate(TypedDict):
     distance_m: NotRequired[float | None]
     rating_count: NotRequired[int | None]
     maps_uri: NotRequired[str | None]
-    # Per-member fit score in [0, 1], keyed by member_id.
-    member_scores: dict[str, float]
     # Final score once ranking has run.
     aggregate_score: float | None
-    reason: str | None

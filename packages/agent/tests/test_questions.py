@@ -11,9 +11,7 @@ def cand(i: int, cuisine: str | None, price: int | None = 2, dist: float | None 
         "price_level": price,
         "cuisine": cuisine,
         "distance_m": dist,
-        "member_scores": {},
         "aggregate_score": None,
-        "reason": None,
     }
 
 

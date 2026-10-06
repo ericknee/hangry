@@ -13,9 +13,7 @@ def cand(
         "price_level": None,
         "rating_count": count,
         "distance_m": distance,
-        "member_scores": {},
         "aggregate_score": None,
-        "reason": None,
     }
 
 

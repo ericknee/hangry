@@ -74,8 +74,7 @@ npm run lint      # eslint
 - `clients/places.py` — Google Places API (New) client. Text Search is billed at the highest tier of
   any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs once per
   session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — check
-  `docs/filtering-plan.md` before changing the mask. `DETAIL_FIELD_MASK`/`get_details` are currently
-  unused.
+  `docs/filtering-plan.md` before changing the mask.
 
 ## API / persistence (`packages/api`)
 
