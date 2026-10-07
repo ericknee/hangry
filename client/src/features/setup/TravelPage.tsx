@@ -4,13 +4,9 @@ import { searchSession } from "../../api/sessions";
 import LoadingScreen from "../../components/LoadingScreen";
 import OptionChips from "../../components/OptionChips";
 import SetupStep from "./SetupStep";
-import {
-  MAX_MINUTES,
-  MIN_MINUTES,
-  MINUTES_STEP,
-  type TravelMode,
-} from "./setupAnswers";
 import { ROUTES } from "../../routes";
+import type { TravelMode } from "../../types";
+import { MAX_MINUTES, MIN_MINUTES, MINUTES_STEP } from "./setupAnswers";
 import { useSetupAnswers } from "./useSetupAnswers";
 
 const MODE_OPTIONS: { value: TravelMode; label: string }[] = [

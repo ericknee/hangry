@@ -10,4 +10,4 @@ class CityLocation(BaseModel):
     place_id: str
     lat: float
     lng: float
-    formatted_address: str | None = None
+    formatted_address: str | None

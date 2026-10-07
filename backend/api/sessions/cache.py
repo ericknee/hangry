@@ -1,7 +1,7 @@
 import time
 from collections.abc import Callable
 
-from agent.models import Candidate
+from agent.types import Candidate
 
 TTL_SECONDS = 30 * 60
 

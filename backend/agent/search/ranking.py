@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent.models import Candidate
+from agent.types import Candidate
 
 # Bayesian average: a place needs about this many reviews before its own rating
 # counts as much as the average rating of all results.

@@ -1,4 +1,4 @@
-from agent.models import Candidate
+from agent.types import Candidate
 from agent.veto.questions import MAX_QUESTIONS, apply_vetoes, next_question, split_score
 
 

@@ -2,6 +2,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+SessionMode = Literal["solo", "group"]
+
 
 class LocationInput(BaseModel):
     # Absent for "Current location", which comes from the browser rather than Places.
@@ -12,15 +14,15 @@ class LocationInput(BaseModel):
 
 
 class CreateSessionRequest(BaseModel):
-    mode: str  # "solo" | "group"
+    mode: SessionMode
     initial_query: str
     location: LocationInput | None = None
 
 
 class SessionResponse(BaseModel):
     session_id: str
-    mode: str
-    share_url: str | None = None
+    mode: SessionMode
+    share_url: str | None
 
 
 class SearchRequest(BaseModel):
@@ -44,12 +46,12 @@ class RestaurantOut(BaseModel):
     place_id: str
     name: str
     address: str
-    cuisine: str | None = None
-    rating: float | None = None
-    rating_count: int | None = None
-    price_level: int | None = None
-    distance_m: float | None = None
-    maps_uri: str | None = None
+    cuisine: str | None
+    rating: float | None
+    rating_count: int | None
+    price_level: int | None
+    distance_m: float | None
+    maps_uri: str | None
 
 
 class ResultsResponse(BaseModel):

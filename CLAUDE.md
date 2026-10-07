@@ -56,6 +56,7 @@ Frontend (run from `client/`):
 npm run dev       # Vite dev server
 npm run build     # tsc -b && vite build
 npm run lint      # eslint
+npm run gen:api   # regenerate the API types after changing backend/api/**/types.py
 ```
 
 ## Search pipeline (`backend/agent`)
@@ -69,7 +70,7 @@ npm run lint      # eslint
   prior); unrated last; distance breaks ties.
 - `veto/questions.py` picks the next veto question by how evenly an attribute splits the remaining
   candidates. **Not wired in yet** (the veto step is deferred); it has tests.
-- `models.py` holds the shared `Candidate` shape (the veto `Question` types live in `veto/questions.py`).
+- `types.py` holds the pipeline's shared types: `Candidate`, `SearchParams`, `Question`, `QuestionOption`.
 - `places_client.py` — Google Places API (New) client. Text Search is billed at the highest tier of
   any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs once per
   session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — see
@@ -78,9 +79,10 @@ npm run lint      # eslint
 ## API / persistence (`backend/api`)
 
 Organized by feature: `sessions/` (`router.py` is HTTP only, `service.py` holds the logic and raises
-domain errors the router maps to status codes, plus `schemas.py` and `cache.py`) and `places/`
+domain errors the router maps to status codes, plus `types.py` and `cache.py`) and `places/`
 (city autocomplete and lookup). `config.py` holds settings, `deps.py` the shared dependency getters,
-`db/` the models, connection and migrations.
+`db/` the models, connection and migrations. Each feature's request/response types are Pydantic
+models in its `types.py`.
 
 - `POST /sessions` inserts a `SessionRecord` (initial query + location, coordinates rounded to 3
   decimals, ~110 m). It does not search.
@@ -112,6 +114,22 @@ Organized by feature under `client/src/features/`:
 pattern; build concrete paths with react-router's `generatePath`. `api/` is the client's data layer:
 `http.ts` is the shared request helper, `sessions.ts` and `places.ts` wrap the endpoints
 (`/api/...`; expects a dev proxy or same-origin deploy — there's no absolute API base URL configured).
+
+## Types
+
+- **Naming:** "schema" is reserved for the database. Type definitions live in `types.py` (backend)
+  and `types.ts` (client); table definitions are in `backend/api/db/models.py` with Alembic migrations.
+- **Backend:** `backend/api/sessions/types.py` and `backend/api/places/types.py` hold the API's
+  request/response models (Pydantic); `backend/agent/types.py` holds the pipeline's types.
+- **Client:** `client/src/types.ts` is the one place to import types from. The API types in it are
+  **generated** from the backend, so don't hand-write them; it also holds the client-only types
+  (`SetupAnswers`, `PendingLocation`).
+- **Workflow after changing a backend API type:** run `npm run gen:api` in `client/`. It dumps the
+  FastAPI schema to `client/src/api/openapi.json` and generates `client/src/api/types.gen.ts` with
+  `openapi-typescript`. Commit both. `backend/tests/api/test_openapi_snapshot.py` fails when the
+  snapshot is stale.
+- Output models should not give fields Python defaults (`= None`), because that makes the generated
+  TypeScript fields optional; request models can.
 
 ## Decisions
 

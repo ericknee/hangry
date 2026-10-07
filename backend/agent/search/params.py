@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from agent.types import SearchParams
 
 # Straight-line metres covered per minute: speed divided by a detour factor,
 # because roads are longer than the crow-flies distance.
@@ -32,14 +32,6 @@ _PRICE_LEVELS = {
     3: "PRICE_LEVEL_EXPENSIVE",
     4: "PRICE_LEVEL_VERY_EXPENSIVE",
 }
-
-
-@dataclass(frozen=True)
-class SearchParams:
-    query: str
-    included_type: str | None
-    price_levels: list[str]
-    radius_m: int
 
 
 def radius_m(mode: str, minutes: int) -> int:

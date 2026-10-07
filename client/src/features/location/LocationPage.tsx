@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes";
-import { autocompleteCities, getCityLocation, type CityPrediction } from "../../api/places";
-import { savePendingLocation, type PendingLocation } from "./pendingLocation";
+import { autocompleteCities, getCityLocation } from "../../api/places";
+import type { CityPrediction, PendingLocation } from "../../types";
+import { savePendingLocation } from "./pendingLocation";
 
 const CURRENT_LOCATION_LABEL = "Current location";
 const LOCATION_ERROR = "Couldn't get your location. Search for a city instead.";

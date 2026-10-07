@@ -1,14 +1,4 @@
-export interface CityPrediction {
-  place_id: string;
-  description: string;
-}
-
-export interface CityLocation {
-  place_id: string;
-  lat: number;
-  lng: number;
-  formatted_address: string | null;
-}
+import type { CityLocation, CityPrediction } from "../types";
 
 export async function autocompleteCities(input: string): Promise<CityPrediction[]> {
   const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(input)}`);

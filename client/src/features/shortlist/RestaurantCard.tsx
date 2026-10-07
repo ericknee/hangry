@@ -1,4 +1,4 @@
-import type { Restaurant } from "../../api/sessions";
+import type { Restaurant } from "../../types";
 import { cuisineLabel, distanceLabel } from "./format";
 
 /** One restaurant's user-facing details. Missing fields are simply left out. */

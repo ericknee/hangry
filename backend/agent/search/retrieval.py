@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import math
 
-from agent.models import Candidate
 from agent.places_client import PlacesClient
-from agent.search.params import SearchParams
+from agent.types import Candidate, SearchParams
 
 MIN_RATING = 3.5
 RETRY_MIN_RATING = 3.0

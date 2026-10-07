@@ -1,5 +1,5 @@
-from agent.models import Candidate
 from agent.search.ranking import rank_candidates
+from agent.types import Candidate
 
 
 def cand(

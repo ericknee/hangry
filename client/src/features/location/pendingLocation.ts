@@ -1,11 +1,4 @@
-/** Location chosen on the first page, held until the session is created on a later page. */
-export interface PendingLocation {
-  // Absent for "Current location", which comes from the browser, not Places.
-  place_id?: string;
-  lat: number;
-  lng: number;
-  formatted_address?: string | null;
-}
+import type { PendingLocation } from "../../types";
 
 const KEY = "hangry.pendingLocation";
 

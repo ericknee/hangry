@@ -8,7 +8,7 @@ from api.db.database import get_db
 from api.deps import get_candidate_cache, get_places
 from api.sessions import service
 from api.sessions.cache import CandidateCache
-from api.sessions.schemas import (
+from api.sessions.types import (
     CreateSessionRequest,
     ResultsResponse,
     SearchRequest,

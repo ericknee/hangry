@@ -10,27 +10,8 @@ from __future__ import annotations
 import math
 from collections import Counter
 from collections.abc import Callable
-from typing import TypedDict
 
-from agent.models import Candidate
-
-
-class QuestionOption(TypedDict):
-    """One tap target. `value` is None for the "don't care" option."""
-
-    label: str
-    value: str | None
-
-
-class Question(TypedDict):
-    """A tap-to-answer question, built from the remaining candidates (no LLM)."""
-
-    id: str
-    prompt: str
-    # Candidate attribute this question vetoes on, e.g. "cuisine".
-    attribute: str
-    options: list[QuestionOption]
-
+from agent.types import Candidate, Question, QuestionOption
 
 MAX_QUESTIONS = 3
 MIN_CANDIDATES = 3  # stop asking once the field is this small

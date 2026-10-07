@@ -3,16 +3,16 @@
 import uuid
 
 import httpx
-from agent.models import Candidate
 from agent.places_client import PlacesClient
 from agent.search.params import build_search_params
 from agent.search.ranking import rank_candidates
 from agent.search.retrieval import retrieve_candidates
+from agent.types import Candidate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models import SessionRecord
 from api.sessions.cache import CandidateCache
-from api.sessions.schemas import CreateSessionRequest, RestaurantOut, SearchRequest
+from api.sessions.types import CreateSessionRequest, RestaurantOut, SearchRequest
 
 # 3 decimals is roughly 110 m: coarse enough to hide the exact spot, fine enough
 # that the search (which reads these stored coordinates) is off by <~80 m.

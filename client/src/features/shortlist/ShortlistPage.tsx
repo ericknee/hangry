@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { getResults, type Restaurant } from "../../api/sessions";
+import { getResults } from "../../api/sessions";
 import CardDeck from "./CardDeck";
 import LoadingScreen from "../../components/LoadingScreen";
+import type { Restaurant } from "../../types";
 import RestaurantCard from "./RestaurantCard";
 
 const TOP_COUNT = 3;

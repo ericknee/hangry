@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { loadSetupAnswers, saveSetupAnswers, type SetupAnswers } from "./setupAnswers";
+import type { SetupAnswers } from "../../types";
+import { loadSetupAnswers, saveSetupAnswers } from "./setupAnswers";
 
 /** Setup answers for one session, persisted to sessionStorage on every change. */
 export function useSetupAnswers(sessionId: string) {

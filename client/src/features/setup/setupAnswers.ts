@@ -1,16 +1,4 @@
-/** Answers to the four setup questions, held in the browser until the search call. */
-export type After = "breakfast" | "lunch" | "dinner" | "coffee_dessert" | "drinks";
-export type Dietary = "none" | "vegetarian" | "vegan" | "halal";
-export type TravelMode = "walk" | "drive";
-
-export interface SetupAnswers {
-  after: After | null;
-  // 1 = "$" ... 4 = "$$$$". Empty means any price.
-  priceLevels: number[];
-  dietary: Dietary;
-  mode: TravelMode;
-  minutes: number;
-}
+import type { After, Dietary, SetupAnswers } from "../../types";
 
 export const AFTER_OPTIONS: { value: After; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
