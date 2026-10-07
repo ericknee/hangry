@@ -1,10 +1,10 @@
 ---
 name: run-hangry
-description: Build, run, and drive Hangry (the FastAPI + LangGraph service and its React client). Use when asked to start Hangry, run its tests, build it, take a screenshot of its UI, or interact with the running app.
+description: Build, run, and drive Hangry (the FastAPI service and its React client). Use when asked to start Hangry, run its tests, build it, take a screenshot of its UI, or interact with the running app.
 ---
 
-Hangry is a FastAPI service (`packages/api`, backed by a LangGraph agent in
-`packages/agent`) plus a separate React/Vite client (`client/`). Drive it by
+Hangry is a FastAPI service (`backend/api`, backed by the search pipeline in
+`backend/agent`) plus a separate React/Vite client (`client/`). Drive it by
 starting both dev servers and then scripting a headless Chromium page via
 `.claude/skills/run-hangry/driver.mjs` (no `chromium-cli` binary is available
 in this environment, so this driver stands in for it — same idea, its own
@@ -24,7 +24,7 @@ npm --version     # 11+
 ## Setup
 
 ```bash
-uv sync --all-packages          # installs packages/agent + packages/api into .venv
+uv sync                         # installs the backend into .venv
 cd client && npm install && cd ..
 cd .claude/skills/run-hangry && npm install && cd ../../..   # installs the driver's playwright dep
 npx --prefix .claude/skills/run-hangry playwright install chromium   # downloads the matching browser build
@@ -56,7 +56,7 @@ Start both dev servers in the background, then drive the client through
 
 ```bash
 # 1. API — port 8000
-uv run uvicorn api.main:app --app-dir packages/api/src --port 8000 > /tmp/api.log 2>&1 &
+uv run uvicorn api.main:app --app-dir backend --port 8000 > /tmp/api.log 2>&1 &
 timeout 15 bash -c 'until curl -sf http://localhost:8000/health >/dev/null; do sleep 0.5; done'
 
 # 2. Client — port 5173, proxies /api/* to :8000 (stripping the /api prefix)
@@ -152,7 +152,7 @@ taskkill //PID <pid> //F
 ## Run (human path)
 
 ```bash
-uv run uvicorn api.main:app --reload --app-dir packages/api/src   # http://localhost:8000
+uv run uvicorn api.main:app --reload --app-dir backend   # http://localhost:8000
 cd client && npm run dev                                          # http://localhost:5173
 ```
 Ctrl-C each to stop. Needs the same `.env` as above.

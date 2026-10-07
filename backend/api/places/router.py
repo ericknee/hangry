@@ -1,0 +1,45 @@
+from typing import Annotated
+
+import httpx
+from agent.places_client import PlacesClient
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from api.deps import get_places
+from api.errors import PLACES_ERRORS, describe_error
+from api.places.types import CityLocation, CityPrediction
+
+router = APIRouter(prefix="/places", tags=["places"])
+
+
+@router.get("/autocomplete", response_model=list[CityPrediction])
+async def autocomplete(
+    input: Annotated[str, Query(min_length=1)],
+    places: Annotated[PlacesClient, Depends(get_places)],
+) -> list[CityPrediction]:
+    try:
+        predictions = await places.autocomplete_cities(input)
+    except PLACES_ERRORS as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Places autocomplete failed: {describe_error(exc)}"
+        ) from exc
+    return [CityPrediction(**p) for p in predictions]
+
+
+@router.get("/cities/{place_id}", response_model=CityLocation)
+async def city_location(
+    place_id: str,
+    places: Annotated[PlacesClient, Depends(get_places)],
+) -> CityLocation:
+    try:
+        location = await places.get_place_location(place_id)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in (400, 404):
+            raise HTTPException(status_code=404, detail="Unknown place id") from exc
+        raise HTTPException(
+            status_code=502, detail=f"Places lookup failed: {describe_error(exc)}"
+        ) from exc
+    except PLACES_ERRORS as exc:
+        raise HTTPException(
+            status_code=502, detail=f"Places lookup failed: {describe_error(exc)}"
+        ) from exc
+    return CityLocation(**location)

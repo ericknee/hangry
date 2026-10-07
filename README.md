@@ -1,39 +1,41 @@
 # Hangry
 
-Group & solo restaurant decision agent — LangGraph-orchestrated adaptive
-preference elicitation and fair-consensus aggregation.
+Solo restaurant picker: choose a location, answer a few taps, and swipe through a ranked shortlist
+from one Google Places search. No LLM. See `CLAUDE.md` for the architecture and decisions.
 
 ## Layout
 
-- `packages/agent` — the LangGraph graph, aggregation strategies, LLM/Places clients
-- `packages/api` — FastAPI service (session routing, auth, WebSocket live updates)
+- `backend/agent` — search pipeline: query building, Places retrieval, ranking
+- `backend/api` — FastAPI service (sessions, search/results endpoints, Postgres)
+- `backend/tests` — backend tests
 - `client` — React + Tailwind + Vite frontend
-- `scripts/smoke_test.py` — end-to-end credentials + skeleton check
 
-`packages/agent` and `packages/api` are a single [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/):
-one lockfile, shared tooling, `api` depends on `agent` as a local editable package.
+The backend is one Python project (root `pyproject.toml`, one lockfile). `agent` is the pure search
+logic; `api` imports from it, never the reverse.
 
 ## First-time setup
 
 ```bash
-cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY (the others are optional for now)
-docker compose up -d        # starts Postgres on localhost:5432
-uv sync --all-packages      # installs both packages + dev deps into one venv
-uv run python scripts/smoke_test.py   # verifies graph + both API keys work
+cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY and the POSTGRES_* values
+docker compose up -d        # starts Postgres (credentials come from .env)
+uv sync                     # installs the backend + dev deps into one venv
+uv run python -m alembic -c backend/alembic.ini upgrade head   # creates the sessions table
 
-cd client && npm install && npm run dev   # frontend on http://localhost:5173
+cd client && npm install    # frontend dependencies
 ```
 
-In another terminal:
+## Run
 
 ```bash
-uv run uvicorn api.main:app --reload --app-dir packages/api/src
+npm run dev                 # from the repo root: API and frontend together
 ```
+
+Or separately, from the repo root: `npm run be` (API) and `npm run fe` (frontend on http://localhost:5173).
 
 ## Common commands
 
 ```bash
-uv run pytest              # run all tests across both packages
+uv run python -m pytest    # run all backend tests
 uv run ruff check .        # lint
 uv run ruff format .       # format
 ```

@@ -1,43 +1,51 @@
-export type SessionMode = "solo" | "group";
+import type {
+  CreateSessionParams,
+  CreateSessionRequest,
+  CreateSessionResponse,
+  ResultsResponse,
+  Restaurant,
+  SearchRequest,
+  SearchResponse,
+  SetupAnswers,
+} from "../types";
+import { apiRequest } from "./http";
 
-export interface LocationInput {
-  place_id: string;
-  lat: number;
-  lng: number;
-  formatted_address?: string | null;
+/**
+ * Sends the setup answers and runs the one restaurant search for this session.
+ * Safe to retry: the server returns the cached results for a repeat call instead of searching again.
+ */
+export async function searchSession(
+  sessionId: string,
+  answers: SetupAnswers,
+): Promise<SearchResponse> {
+  if (answers.after === null) throw new Error("Setup is incomplete: missing 'after'");
+  const body: SearchRequest = {
+    after: answers.after,
+    price_levels: answers.priceLevels,
+    dietary: answers.dietary,
+    mode: answers.mode,
+    minutes: answers.minutes,
+  };
+  return apiRequest<SearchResponse>(`/api/sessions/${encodeURIComponent(sessionId)}/search`, {
+    method: "POST",
+    body,
+    retry: true,
+  });
 }
 
-export interface CandidateOut {
-  place_id: string;
-  name: string;
-  address: string;
-}
-
-export interface CreateSessionResponse {
-  session_id: string;
-  mode: SessionMode;
-  share_url: string | null;
-  candidates: CandidateOut[];
-}
-
-export interface CreateSessionParams {
-  mode: SessionMode;
-  initialQuery: string;
-  location?: LocationInput | null;
-  radiusKm?: number | null;
+/** All search results for the session, best first. Rejects if they expired or never existed. */
+export async function getResults(sessionId: string): Promise<Restaurant[]> {
+  const { restaurants } = await apiRequest<ResultsResponse>(
+    `/api/sessions/${encodeURIComponent(sessionId)}/results`,
+  );
+  return restaurants;
 }
 
 export async function createSession(params: CreateSessionParams): Promise<CreateSessionResponse> {
-  const res = await fetch("/api/sessions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      mode: params.mode,
-      initial_query: params.initialQuery,
-      location: params.location ?? null,
-      radius_km: params.radiusKm ?? null,
-    }),
-  });
-  if (!res.ok) throw new Error(`Failed to create session: ${res.status}`);
-  return res.json();
+  const body: CreateSessionRequest = {
+    mode: params.mode,
+    initial_query: params.initialQuery,
+    location: params.location ?? null,
+  };
+  return apiRequest<CreateSessionResponse>("/api/sessions", { method: "POST", body });
 }

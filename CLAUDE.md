@@ -4,31 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Hangry — a group & solo restaurant decision agent. A LangGraph-orchestrated
-graph does adaptive preference elicitation per member, then aggregates member preferences into a
-fair consensus shortlist. Very early Phase 1: most node logic is still stubbed (see "Current state"
-below) — don't assume TODOs are dead code, they mark exactly what's unimplemented.
+Hangry — a solo restaurant picker (MVP). The user chooses a location and answers a few taps, the
+backend runs **one** Google Places search, and the user swipes through a ranked shortlist. There is
+**no LLM** anywhere in the flow. Group sessions, the cuisine veto step and photos are not built (see
+"Not built yet"). Key product and technical decisions are listed under "Decisions" below.
+
+The earlier LangGraph graph, aggregation strategies (`maximin`, `borda`, `average_utility`) and
+Claude client were removed as unused; they remain in git history.
 
 ## Layout
 
-- `packages/agent` — the LangGraph graph, aggregation strategies, LLM/Places clients (`agent.*`)
-- `packages/api` — FastAPI service: session routing, auth, WebSocket live updates (`api.*`)
+- `backend/agent` — the search pipeline: query building, Places retrieval, ranking (`agent.*`)
+- `backend/api` — FastAPI service: sessions, search/results endpoints, Postgres (`api.*`)
+- `backend/tests` — backend tests, in `agent/` and `api/` folders mirroring the code
 - `client` — React + Tailwind + Vite frontend
-- `scripts/smoke_test.py` — end-to-end credentials + graph-skeleton check
 
-`packages/agent` and `packages/api` are a single [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/):
-one lockfile, shared tooling; `api` depends on `agent` as a local editable package (`tool.uv.sources`
-in `packages/api/pyproject.toml`).
+The backend is one Python project (root `pyproject.toml`, one lockfile). Keep `agent` free of web and
+database code: `api` imports from `agent`, never the reverse.
 
 ## Commands
 
 First-time setup:
 
 ```bash
-cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY (the others are optional for now)
-docker compose up -d        # starts Postgres on localhost:5432
-uv sync --all-packages      # installs both packages + dev deps into one venv
-uv run python scripts/smoke_test.py   # verifies graph + both API keys work
+cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY and the POSTGRES_* values; DATABASE_URL must match them
+docker compose up -d        # starts Postgres (credentials come from .env)
+uv sync                     # installs the backend + dev deps into one venv
+uv run python -m alembic -c backend/alembic.ini upgrade head   # creates the sessions table
 
 cd client && npm install && npm run dev   # frontend on http://localhost:5173
 ```
@@ -36,14 +38,14 @@ cd client && npm install && npm run dev   # frontend on http://localhost:5173
 Run the API (separate terminal, repo root):
 
 ```bash
-uv run uvicorn api.main:app --reload --app-dir packages/api/src
+uv run uvicorn api.main:app --reload --app-dir backend
 ```
 
 Backend:
 
 ```bash
-uv run pytest                          # run all tests across both packages
-uv run pytest packages/agent/tests/test_graph.py::test_graph_compiles  # single test
+uv run python -m pytest                # all backend tests (`uv run pytest` fails on this Windows setup)
+uv run python -m pytest backend/tests/agent/test_ranking.py   # single file
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 ```
@@ -54,82 +56,104 @@ Frontend (run from `client/`):
 npm run dev       # Vite dev server
 npm run build     # tsc -b && vite build
 npm run lint      # eslint
+npm run gen:api   # regenerate the API types after changing backend/api/**/types.py
 ```
 
-## Architecture: the LangGraph graph
+## Search pipeline (`backend/agent`)
 
-`packages/agent/src/agent/graph.py` builds the core state machine:
+- `search/params.py` turns setup answers into search parameters. The search takes **one** place
+  type: dietary wins it for breakfast/lunch/dinner, but for coffee & dessert and drinks the meal
+  keeps the type and dietary is added to the query text ("vegan drinks"); the query is the craving if typed, else the default text for the winning
+  type; walk/drive minutes become a radius (80 / 500 m per minute ÷ 1.3 detour, square bounding box).
+- `search/retrieval.py` runs the search (open now, rating floor 3.5, one retry at 3.0 if under 5 results),
+  drops non-operational places and maps results to `Candidate`s.
+- `search/ranking.py` orders candidates by a Bayesian average of rating (prior weight 50 reviews, pool-average
+  prior); unrated last; distance breaks ties.
+- `veto/questions.py` picks the next veto question by how evenly an attribute splits the remaining
+  candidates. **Not wired in yet** (the veto step is deferred); it has tests.
+- `types.py` holds the pipeline's shared types: `Candidate`, `SearchParams`, `Question`, `QuestionOption`.
+- `places_client.py` — Google Places API (New) client. Text Search is billed at the highest tier of
+  any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs once per
+  session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — see
+  "Places cost" under "Decisions" before changing the mask.
 
-```
-Start -> elicit (parallel Send per member) -> aggregate & retrieve
-      -> consensus reached? --no--> back to elicit (targeted follow-up)
-                            --yes-> present shortlist -> log selection -> End
-```
+## API / persistence (`backend/api`)
 
-- **Solo mode is not a separate graph.** It's this exact graph invoked with `members` of length 1 —
-  the aggregation node becomes a pass-through and consensus resolves on the first pass. Never branch
-  solo vs. group in graph structure; if you need different behavior, it belongs in the member-count
-  check, not a new path.
-- **Fan-out**: `elicit` runs once per member in parallel via LangGraph's `Send` API
-  (`agent/nodes/elicit.py`) — branches must stay independent, no cross-member blocking.
-- **Consensus loop**: `_consensus_reached` in `graph.py` routes back to `elicit` for a targeted
-  follow-up on whichever member is blocking consensus, or forward to `present`. `round_count` vs.
-  `max_rounds` bounds the loop so a non-converging group still terminates with a best-effort
-  shortlist (`packages/api/src/api/core/config.py` sets defaults: `consensus_threshold=0.7`,
-  `max_rounds=4`).
-- **State shape**: `packages/agent/src/agent/state.py` (`HangryState`, `MemberState`,
-  `Candidate`) is the single source of truth for what flows through every node — read it before
-  touching any node.
+Organized by feature: `sessions/` (`router.py` is HTTP only, `service.py` holds the logic and raises
+domain errors the router maps to status codes, plus `types.py` and `cache.py`) and `places/`
+(city autocomplete and lookup). `config.py` holds settings, `deps.py` the shared dependency getters,
+`db/` the models, connection and migrations. Each feature's request/response types are Pydantic
+models in its `types.py`.
 
-## Aggregation strategies
+- `POST /sessions` inserts a `SessionRecord` (initial query + location, coordinates rounded to 3
+  decimals, ~110 m). It does not search.
+- `POST /sessions/{id}/search` takes the setup answers, runs the one Places search, keeps the
+  candidates in a 30-minute in-memory cache (`sessions/cache.py`; Google's terms limit stored
+  Places content, so they are never written to the DB) and records the setup answers on the row.
+  Places errors return 502.
+- `GET /sessions/{id}/results` returns the cached candidates ranked, trimmed to user-facing fields;
+  404 once the cache entry has expired (including after any server restart).
+- DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Schema changes go
+  through Alembic (`backend/alembic.ini`, migrations in `api/db/migrations/`); see
+  `api/db/migrations/README.md`.
+- Settings (`api/config.py`) load the repo-root `.env` by absolute path via `pydantic-settings`;
+  `google_places_api_key` and `database_url` are required. Tests set dummy values in
+  `backend/tests/api/conftest.py`.
 
-`packages/agent/src/agent/aggregation/` holds multiple candidate-scoring strategies
-(`average_utility`, `maximin`, `borda`) behind the `STRATEGIES` map in `aggregation/__init__.py`.
-Which one ships as default is an open evaluation question (currently `maximin`, wired directly in
-`nodes/aggregate.py` as `DEFAULT_STRATEGY`), not a settled decision — don't treat the current
-default as final without checking whether the evaluation plan has since picked a winner. Borda is
-scored across the whole candidate set at once (not per-candidate like the others), so it isn't in
-the `STRATEGIES` map and must be invoked separately.
+## Frontend (`client`)
 
-## LLM / external API clients
+Organized by feature under `client/src/features/`:
+- `location/` — `LocationPage` (`/`, location search with a "Current location" dropdown entry; the
+  choice is held in `sessionStorage` via `pendingLocation.ts`).
+- `setup/` — `SearchPage` (`/search`, optional craving text; Next creates the session) and the four
+  one-question pages (`/session/:sessionId/setup/{after,price,dietary,travel}`). Answers are held in
+  `sessionStorage` via `setupAnswers.ts`; the last page runs the search behind a loading screen.
+- `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
+  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
 
-- `agent/clients/claude.py` — thin `AsyncAnthropic` wrapper for exactly two jobs: generating one
-  adaptive elicitation question + tap options, and writing the shortlist explanation. By design,
-  elicitation answers are tap-selected from generated options, not free-typed — there's no
-  free-text NLU surface to build here; don't add one.
-- `agent/clients/places.py` — Google Places API (New) client. Deliberately uses two field masks:
-  `SEARCH_FIELD_MASK` (Essentials tier, cheap) for bulk candidate search, `DETAIL_FIELD_MASK`
-  (Pro/Enterprise tier) only for the handful of shortlist finalists. Keep new Places calls on the
-  cheaper mask unless they genuinely need Pro-tier fields (rating, reviews, photos).
+`components/` holds only shared UI (`OptionChips`, `LoadingScreen`, `Toast`). Errors are shown as a
+top-of-screen toast: call `useToast().showError(userMessage(error, "friendly fallback"))` (`userMessage`
+is in `api/http.ts`; backend `detail` stays in the console, not the UI). `routes.ts` lists every URL
+pattern; build concrete paths with react-router's `generatePath`. `api/` is the client's data layer:
+`http.ts` is the shared request helper, `sessions.ts` and `places.ts` wrap the endpoints
+(`/api/...`; expects a dev proxy or same-origin deploy — there's no absolute API base URL configured).
 
-## API / persistence
+## Types
 
-- `packages/api/src/api/routers/sessions.py` builds the graph once at import time (`_graph =
-  build_graph()`) and reuses it per request.
-- DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Phase 1 scope is
-  session logs only (`SessionRecord`: id, mode, created_at, last-known state snapshot as JSON, final
-  pick). No Alembic migrations exist yet — schema currently relies on `Base.metadata.create_all`;
-  see `api/db/migrations/README.md` for when/how to scaffold Alembic (`alembic init .` from
-  `packages/api/`) once the schema is ready to be migrated for real.
-- `api/ws/manager.py` (`SessionConnectionManager`) broadcasts live per-session updates (e.g. "2 of 3
-  members done") over WebSocket as parallel elicit branches complete.
-- Settings (`api/core/config.py`) load from `.env` via `pydantic-settings`; Only
-  `google_places_api_key` is required; `database_url` and `anthropic_api_key` are temporarily
-  optional (nothing in the API uses the DB or Claude yet) — make them required again once wired.
+- **Naming:** "schema" is reserved for the database. Type definitions live in `types.py` (backend)
+  and `types.ts` (client); table definitions are in `backend/api/db/models.py` with Alembic migrations.
+- **Backend:** `backend/api/sessions/types.py` and `backend/api/places/types.py` hold the API's
+  request/response models (Pydantic); `backend/agent/types.py` holds the pipeline's types.
+- **Client:** `client/src/types.ts` is the one place to import types from. The API types in it are
+  **generated** from the backend, so don't hand-write them; it also holds the client-only types
+  (`SetupAnswers`, `PendingLocation`).
+- **Workflow after changing a backend API type:** run `npm run gen:api` in `client/`. It dumps the
+  FastAPI schema to `client/src/api/openapi.json` and generates `client/src/api/types.gen.ts` with
+  `openapi-typescript`. Commit both. `backend/tests/api/test_openapi_snapshot.py` fails when the
+  snapshot is stale.
+- Output models should not give fields Python defaults (`= None`), because that makes the generated
+  TypeScript fields optional; request models can.
 
-## Frontend
+## Decisions
 
-React Router pages under `client/src/pages/`: `HomePage` (create session) → `ElicitationPage`
-(`/session/:sessionId`, tap-option question flow) → `ShortlistPage` (`/session/:sessionId/shortlist`).
-`client/src/api/sessions.ts` calls the backend at `/api/sessions` (expects a dev proxy or same-origin
-deploy — there's no absolute API base URL configured). Elicitation UI is tap-to-select
-(`TapOptionQuestion` component), matching the "no free-text NLU" decision on the backend.
+- **Setup answers:** meal (breakfast / lunch / dinner / coffee & dessert / drinks, single-select),
+  price (1–4 tiers, multi-select, none = any), dietary (none / vegetarian / vegan / halal,
+  single-select), travel (walk or drive, 5–60 min slider, default 20).
+- **Search filters:** open now; rating ≥ 3.5, retried once at 3.0 if under 5 results. One place type
+  only (dietary wins for breakfast/lunch/dinner; for coffee & dessert and drinks the meal type
+  stays and dietary goes in the query text); query = the craving if typed, else the default text for the winning type.
+- **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
+- **Storage:** places results are only in the 30-minute in-memory cache; the DB stores IDs, setup
+  answers and rounded (3-decimal) coordinates. Photos are not fetched.
+- **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
+  (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
+  with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
+  Google's pricing page as read in 2026-10 and have not been checked against a live call or the bill.
+  A place photo is a separate request at about $0.007 each.
 
-## Current state (don't be surprised by stubs)
+## Not built yet
 
-- `elicit_member` always asks exactly one question then marks the member done — no real
-  expected-information-gain stopping rule yet.
-- `aggregate_and_retrieve` scores whatever candidates are already in state — no real Places
-  retrieval/re-ranking wired in yet.
-- `sessions.py`'s `create_session` doesn't persist a `SessionRecord` or invoke the graph yet.
-- `ElicitationPage` renders a hardcoded placeholder question instead of fetching one.
+- Group sessions: invites, the join page (the API returns a `share_url` for `mode: "group"` that
+  nothing serves), host-location search.
+- The cuisine veto question (selection logic exists in `veto/questions.py`, no endpoint or page).
+- Place photos, session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.
