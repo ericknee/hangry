@@ -7,21 +7,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Hangry — a solo restaurant picker (MVP). The user chooses a location and answers a few taps, the
 backend runs **one** Google Places search, and the user swipes through a ranked shortlist. There is
 **no LLM** anywhere in the flow. Group sessions, the cuisine veto step and photos are not built (see
-"Not built yet"). Product and technical decisions live in `docs/filtering-plan.md`.
+"Not built yet"). Key product and technical decisions are listed under "Decisions" below.
 
 The earlier LangGraph graph, aggregation strategies (`maximin`, `borda`, `average_utility`) and
 Claude client were removed as unused; they remain in git history.
 
 ## Layout
 
-- `packages/agent` — the search pipeline: query building, Places retrieval, ranking (`agent.*`)
-- `packages/api` — FastAPI service: sessions, search/results endpoints, Postgres (`api.*`)
+- `backend/agent` — the search pipeline: query building, Places retrieval, ranking (`agent.*`)
+- `backend/api` — FastAPI service: sessions, search/results endpoints, Postgres (`api.*`)
+- `backend/tests` — backend tests, in `agent/` and `api/` folders mirroring the code
 - `client` — React + Tailwind + Vite frontend
-- `docs/filtering-plan.md` — MVP spec, decisions, costs, future work
 
-`packages/agent` and `packages/api` are a single [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/):
-one lockfile, shared tooling; `api` depends on `agent` as a local editable package (`tool.uv.sources`
-in `packages/api/pyproject.toml`).
+The backend is one Python project (root `pyproject.toml`, one lockfile). Keep `agent` free of web and
+database code: `api` imports from `agent`, never the reverse.
 
 ## Commands
 
@@ -30,8 +29,8 @@ First-time setup:
 ```bash
 cp .env.example .env        # fill in GOOGLE_PLACES_API_KEY and the POSTGRES_* values; DATABASE_URL must match them
 docker compose up -d        # starts Postgres (credentials come from .env)
-uv sync --all-packages      # installs both packages + dev deps into one venv
-uv run python -m alembic -c packages/api/alembic.ini upgrade head   # creates the sessions table
+uv sync                     # installs the backend + dev deps into one venv
+uv run python -m alembic -c backend/alembic.ini upgrade head   # creates the sessions table
 
 cd client && npm install && npm run dev   # frontend on http://localhost:5173
 ```
@@ -39,14 +38,14 @@ cd client && npm install && npm run dev   # frontend on http://localhost:5173
 Run the API (separate terminal, repo root):
 
 ```bash
-uv run uvicorn api.main:app --reload --app-dir packages/api/src
+uv run uvicorn api.main:app --reload --app-dir backend
 ```
 
 Backend:
 
 ```bash
-uv run python -m pytest                # all tests across both packages (`uv run pytest` fails on this Windows setup)
-uv run python -m pytest packages/agent/tests/test_ranking.py   # single file
+uv run python -m pytest                # all backend tests (`uv run pytest` fails on this Windows setup)
+uv run python -m pytest backend/tests/agent/test_ranking.py   # single file
 uv run ruff check .                    # lint
 uv run ruff format .                   # format
 ```
@@ -59,55 +58,80 @@ npm run build     # tsc -b && vite build
 npm run lint      # eslint
 ```
 
-## Search pipeline (`packages/agent`)
+## Search pipeline (`backend/agent`)
 
-- `search_params.py` turns setup answers into search parameters. The search takes **one** place
+- `search/params.py` turns setup answers into search parameters. The search takes **one** place
   type and dietary wins it; the query is the craving if typed, else the default text for the winning
   type; walk/drive minutes become a radius (80 / 500 m per minute ÷ 1.3 detour, square bounding box).
-- `retrieval.py` runs the search (open now, rating floor 3.5, one retry at 3.0 if under 5 results),
+- `search/retrieval.py` runs the search (open now, rating floor 3.5, one retry at 3.0 if under 5 results),
   drops non-operational places and maps results to `Candidate`s.
-- `ranking.py` orders candidates by a Bayesian average of rating (prior weight 50 reviews, pool-average
+- `search/ranking.py` orders candidates by a Bayesian average of rating (prior weight 50 reviews, pool-average
   prior); unrated last; distance breaks ties.
-- `questions.py` picks the next veto question by how evenly an attribute splits the remaining
+- `veto/questions.py` picks the next veto question by how evenly an attribute splits the remaining
   candidates. **Not wired in yet** (the veto step is deferred); it has tests.
-- `state.py` holds the shared shapes (`Candidate`, `Question`).
-- `clients/places.py` — Google Places API (New) client. Text Search is billed at the highest tier of
+- `models.py` holds the shared `Candidate` shape (the veto `Question` types live in `veto/questions.py`).
+- `places_client.py` — Google Places API (New) client. Text Search is billed at the highest tier of
   any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs once per
-  session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — check
-  `docs/filtering-plan.md` before changing the mask.
+  session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — see
+  "Places cost" under "Decisions" before changing the mask.
 
-## API / persistence (`packages/api`)
+## API / persistence (`backend/api`)
+
+Organized by feature: `sessions/` (`router.py` is HTTP only, `service.py` holds the logic and raises
+domain errors the router maps to status codes, plus `schemas.py` and `cache.py`) and `places/`
+(city autocomplete and lookup). `config.py` holds settings, `deps.py` the shared dependency getters,
+`db/` the models, connection and migrations.
 
 - `POST /sessions` inserts a `SessionRecord` (initial query + location, coordinates rounded to 3
   decimals, ~110 m). It does not search.
 - `POST /sessions/{id}/search` takes the setup answers, runs the one Places search, keeps the
-  candidates in a 30-minute in-memory cache (`core/candidate_cache.py`; Google's terms limit stored
+  candidates in a 30-minute in-memory cache (`sessions/cache.py`; Google's terms limit stored
   Places content, so they are never written to the DB) and records the setup answers on the row.
   Places errors return 502.
 - `GET /sessions/{id}/results` returns the cached candidates ranked, trimmed to user-facing fields;
   404 once the cache entry has expired (including after any server restart).
 - DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Schema changes go
-  through Alembic (`packages/api/alembic.ini`, migrations in `api/db/migrations/`); see
+  through Alembic (`backend/alembic.ini`, migrations in `api/db/migrations/`); see
   `api/db/migrations/README.md`.
-- Settings (`api/core/config.py`) load the repo-root `.env` by absolute path via `pydantic-settings`;
+- Settings (`api/config.py`) load the repo-root `.env` by absolute path via `pydantic-settings`;
   `google_places_api_key` and `database_url` are required. Tests set dummy values in
-  `packages/api/tests/conftest.py`.
+  `backend/tests/api/conftest.py`.
 
 ## Frontend (`client`)
 
-React Router pages under `client/src/pages/`: `LocationPage` (`/`, location search with a "Current
-location" dropdown entry; choice held in `sessionStorage` via `lib/pendingLocation.ts`) →
-`SearchPage` (`/search`, optional craving text; Next creates the session) → four setup pages under
-`pages/setup/` (`/session/:sessionId/setup/{after,price,dietary,travel}`, one question each, answers
-held in `sessionStorage` via `lib/setupAnswers.ts`; the last one runs the search behind a loading
-screen) → `ShortlistPage` (`/session/:sessionId/shortlist`: swipeable `CardDeck` of
-`RestaurantCard`s, top 3 first, "More recommendations" appends the rest).
-`client/src/api/sessions.ts` calls the backend at `/api/sessions` (expects a dev proxy or same-origin
-deploy — there's no absolute API base URL configured).
+Organized by feature under `client/src/features/`:
+- `location/` — `LocationPage` (`/`, location search with a "Current location" dropdown entry; the
+  choice is held in `sessionStorage` via `pendingLocation.ts`).
+- `setup/` — `SearchPage` (`/search`, optional craving text; Next creates the session) and the four
+  one-question pages (`/session/:sessionId/setup/{after,price,dietary,travel}`). Answers are held in
+  `sessionStorage` via `setupAnswers.ts`; the last page runs the search behind a loading screen.
+- `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
+  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
+
+`components/` holds only shared UI (`OptionChips`, `LoadingScreen`). `routes.ts` lists every URL
+pattern; build concrete paths with react-router's `generatePath`. `api/` is the client's data layer:
+`http.ts` is the shared request helper, `sessions.ts` and `places.ts` wrap the endpoints
+(`/api/...`; expects a dev proxy or same-origin deploy — there's no absolute API base URL configured).
+
+## Decisions
+
+- **Setup answers:** meal (breakfast / lunch / dinner / coffee & dessert / drinks, single-select),
+  price (1–4 tiers, multi-select, none = any), dietary (none / vegetarian / vegan / halal,
+  single-select), travel (walk or drive, 5–60 min slider, default 20).
+- **Search filters:** open now; rating ≥ 3.5, retried once at 3.0 if under 5 results. One place type
+  only (dietary wins); query = the craving if typed, else the default text for the winning type.
+- **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
+- **Storage:** places results are only in the 30-minute in-memory cache; the DB stores IDs, setup
+  answers and rounded (3-decimal) coordinates. Photos are not fetched.
+- **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
+  (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
+  with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
+  Google's pricing page as read in 2026-10 and have not been checked against a live call or the bill.
+  A place photo is a separate request at about $0.007 each.
 
 ## Not built yet
 
 - Group sessions: invites, the join page (the API returns a `share_url` for `mode: "group"` that
   nothing serves), host-location search.
-- The cuisine veto question (selection logic exists in `questions.py`, no endpoint or page).
+- The cuisine veto question (selection logic exists in `veto/questions.py`, no endpoint or page).
 - Place photos, session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.

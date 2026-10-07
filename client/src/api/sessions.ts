@@ -1,6 +1,6 @@
 import { apiRequest } from "./http";
-import type { PendingLocation } from "../lib/pendingLocation";
-import type { SetupAnswers } from "../lib/setupAnswers";
+import type { PendingLocation } from "../features/location/pendingLocation";
+import type { SetupAnswers } from "../features/setup/setupAnswers";
 
 export type SessionMode = "solo" | "group";
 

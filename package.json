@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "be": "uv run python -m uvicorn api.main:app --reload --app-dir packages/api/src",
+    "be": "uv run python -m uvicorn api.main:app --reload --app-dir backend",
     "fe": "npm run dev --prefix client",
-    "dev": "concurrently -n api,client -c blue,green \"uv run python -m uvicorn api.main:app --reload --app-dir packages/api/src\" \"npm run dev --prefix client\""
+    "dev": "concurrently -n api,client -c blue,green \"uv run python -m uvicorn api.main:app --reload --app-dir backend\" \"npm run dev --prefix client\""
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
