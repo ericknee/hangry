@@ -2,7 +2,6 @@
 
 import uuid
 
-import httpx
 from agent.places_client import PlacesClient
 from agent.search.params import build_search_params
 from agent.search.ranking import rank_candidates
@@ -11,6 +10,7 @@ from agent.types import Candidate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models import SessionRecord
+from api.errors import PLACES_ERRORS, describe_error
 from api.sessions.cache import CandidateCache
 from api.sessions.types import CreateSessionRequest, RestaurantOut, SearchRequest
 
@@ -67,6 +67,11 @@ async def run_search(
     if location is None:
         raise SessionHasNoLocation(session_id)
 
+    # A repeat call (double-tap, retry) reuses the cached results instead of a second paid search.
+    cached = cache.get(session_id)
+    if cached is not None:
+        return len(cached)
+
     params = build_search_params(
         after=payload.after,
         dietary=payload.dietary,
@@ -79,8 +84,8 @@ async def run_search(
         candidates = await retrieve_candidates(
             places, lat=location["lat"], lng=location["lng"], params=params
         )
-    except httpx.HTTPError as exc:
-        raise SearchFailed(session_id) from exc
+    except PLACES_ERRORS as exc:
+        raise SearchFailed(describe_error(exc)) from exc
 
     cache.set(session_id, candidates)
     # Reassigned (not mutated) so SQLAlchemy sees the JSON column change.

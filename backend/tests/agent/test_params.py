@@ -43,3 +43,10 @@ def test_price_levels_mapped_and_sorted():
         "PRICE_LEVEL_INEXPENSIVE",
         "PRICE_LEVEL_EXPENSIVE",
     ]
+
+
+def test_dietary_goes_in_the_query_for_drinks_and_coffee():
+    p = params(after="drinks", dietary="vegan")
+    assert (p.included_type, p.query) == ("bar", "vegan drinks")
+    p = params(after="coffee_dessert", dietary="halal")
+    assert (p.included_type, p.query) == (None, "halal coffee dessert")

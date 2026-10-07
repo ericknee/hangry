@@ -62,7 +62,8 @@ npm run gen:api   # regenerate the API types after changing backend/api/**/types
 ## Search pipeline (`backend/agent`)
 
 - `search/params.py` turns setup answers into search parameters. The search takes **one** place
-  type and dietary wins it; the query is the craving if typed, else the default text for the winning
+  type: dietary wins it for breakfast/lunch/dinner, but for coffee & dessert and drinks the meal
+  keeps the type and dietary is added to the query text ("vegan drinks"); the query is the craving if typed, else the default text for the winning
   type; walk/drive minutes become a radius (80 / 500 m per minute ÷ 1.3 detour, square bounding box).
 - `search/retrieval.py` runs the search (open now, rating floor 3.5, one retry at 3.0 if under 5 results),
   drops non-operational places and maps results to `Candidate`s.
@@ -110,7 +111,9 @@ Organized by feature under `client/src/features/`:
 - `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
   `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
 
-`components/` holds only shared UI (`OptionChips`, `LoadingScreen`). `routes.ts` lists every URL
+`components/` holds only shared UI (`OptionChips`, `LoadingScreen`, `Toast`). Errors are shown as a
+top-of-screen toast: call `useToast().showError(userMessage(error, "friendly fallback"))` (`userMessage`
+is in `api/http.ts`; backend `detail` stays in the console, not the UI). `routes.ts` lists every URL
 pattern; build concrete paths with react-router's `generatePath`. `api/` is the client's data layer:
 `http.ts` is the shared request helper, `sessions.ts` and `places.ts` wrap the endpoints
 (`/api/...`; expects a dev proxy or same-origin deploy — there's no absolute API base URL configured).
@@ -137,7 +140,8 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   price (1–4 tiers, multi-select, none = any), dietary (none / vegetarian / vegan / halal,
   single-select), travel (walk or drive, 5–60 min slider, default 20).
 - **Search filters:** open now; rating ≥ 3.5, retried once at 3.0 if under 5 results. One place type
-  only (dietary wins); query = the craving if typed, else the default text for the winning type.
+  only (dietary wins for breakfast/lunch/dinner; for coffee & dessert and drinks the meal type
+  stays and dietary goes in the query text); query = the craving if typed, else the default text for the winning type.
 - **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
 - **Storage:** places results are only in the 30-minute in-memory cache; the DB stores IDs, setup
   answers and rounded (3-decimal) coordinates. Photos are not fetched.

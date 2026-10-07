@@ -49,7 +49,7 @@ async def search_session(
             status_code=400, detail="Session has no location to search around"
         ) from exc
     except service.SearchFailed as exc:
-        raise HTTPException(status_code=502, detail="Restaurant search failed") from exc
+        raise HTTPException(status_code=502, detail=f"Restaurant search failed: {exc}") from exc
     return SearchResponse(count=count)
 
 

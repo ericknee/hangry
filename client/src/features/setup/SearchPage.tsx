@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
+import { userMessage } from "../../api/http";
 import { createSession } from "../../api/sessions";
+import { useToast } from "../../components/useToast";
 import { ROUTES } from "../../routes";
 import { loadPendingLocation } from "../location/pendingLocation";
 
 export default function SearchPage() {
   const navigate = useNavigate();
   const [craving, setCraving] = useState("");
+  const { showError } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleNext() {
     setSubmitting(true);
-    setError(null);
     try {
       const session = await createSession({
         mode: "solo",
@@ -20,8 +21,8 @@ export default function SearchPage() {
         location: loadPendingLocation(),
       });
       navigate(generatePath(ROUTES.setupAfter, { sessionId: session.session_id }));
-    } catch {
-      setError("Couldn't start your session. Try again.");
+    } catch (error) {
+      showError(userMessage(error, "Couldn't start your session. Try again."));
       setSubmitting(false);
     }
   }
@@ -42,7 +43,6 @@ export default function SearchPage() {
             if (e.key === "Enter" && !submitting) handleNext();
           }}
         />
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
         <button
           type="button"
           disabled={submitting}

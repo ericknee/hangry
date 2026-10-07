@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes";
+import { userMessage } from "../../api/http";
+import { useToast } from "../../components/useToast";
 import { autocompleteCities, getCityLocation } from "../../api/places";
 import type { CityPrediction, PendingLocation } from "../../types";
 import { savePendingLocation } from "./pendingLocation";
@@ -39,11 +41,11 @@ function getBrowserPosition(): Promise<GeolocationPosition> {
 
 export default function LocationPage() {
   const navigate = useNavigate();
+  const { showError } = useToast();
   const [locationText, setLocationText] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<PendingLocation | null>(null);
   const [predictions, setPredictions] = useState<CityPrediction[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const requestId = useRef(0);
 
   useEffect(() => {
@@ -66,8 +68,13 @@ export default function LocationPage() {
   async function selectPrediction(prediction: CityPrediction) {
     setPredictions([]);
     setShowPredictions(false);
-    setLocationError(null);
-    const city = await getCityLocation(prediction.place_id);
+    let city;
+    try {
+      city = await getCityLocation(prediction.place_id);
+    } catch (error) {
+      showError(userMessage(error, "Couldn't load that location. Try another."));
+      return;
+    }
     // Set together so the debounce effect sees a non-null selectedLocation in
     // the same render as the locationText change, and skips re-fetching.
     setLocationText(prediction.description);
@@ -84,11 +91,11 @@ export default function LocationPage() {
     setShowPredictions(false);
     try {
       const { coords } = await getBrowserPosition();
-      setLocationError(null);
       setLocationText(CURRENT_LOCATION_LABEL);
       setSelectedLocation({ lat: coords.latitude, lng: coords.longitude });
-    } catch {
-      setLocationError(LOCATION_ERROR);
+    } catch (error) {
+      console.error(error);
+      showError(LOCATION_ERROR);
     }
   }
 
@@ -114,7 +121,6 @@ export default function LocationPage() {
               onChange={(e) => {
                 setLocationText(e.target.value);
                 setSelectedLocation(null);
-                setLocationError(null);
               }}
               onFocus={() => setShowPredictions(true)}
               onBlur={() => setTimeout(() => setShowPredictions(false), 150)}
@@ -145,7 +151,6 @@ export default function LocationPage() {
               ))}
             </ul>
           )}
-          {locationError && <p className="mt-2 px-2 text-sm text-red-500">{locationError}</p>}
         </div>
 
         <button

@@ -10,7 +10,10 @@ import type {
 } from "../types";
 import { apiRequest } from "./http";
 
-/** Sends the setup answers and runs the one restaurant search for this session. */
+/**
+ * Sends the setup answers and runs the one restaurant search for this session.
+ * Safe to retry: the server returns the cached results for a repeat call instead of searching again.
+ */
 export async function searchSession(
   sessionId: string,
   answers: SetupAnswers,
@@ -26,6 +29,7 @@ export async function searchSession(
   return apiRequest<SearchResponse>(`/api/sessions/${encodeURIComponent(sessionId)}/search`, {
     method: "POST",
     body,
+    retry: true,
   });
 }
 

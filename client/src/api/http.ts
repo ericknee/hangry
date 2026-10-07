@@ -5,12 +5,27 @@ const BASE_DELAY_MS = 500;
 export class ApiError extends Error {
   /** HTTP status, or null when the request never got a response (network failure). */
   status: number | null;
+  /** The backend's `detail` text, for logs and debugging. Not written for end users. */
+  detail: string | null;
 
-  constructor(message: string, status: number | null) {
+  constructor(message: string, status: number | null, detail: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.detail = detail;
   }
+}
+
+/**
+ * Text to show the user for a failed call: a connection hint when the server was unreachable,
+ * otherwise the caller's own message. Backend details stay out of the UI; they go to the console.
+ */
+export function userMessage(error: unknown, fallback: string): string {
+  console.error(error);
+  if (error instanceof ApiError && error.status === null) {
+    return "Can't reach the server. Check your connection and try again.";
+  }
+  return fallback;
 }
 
 interface RequestOptions {
@@ -44,7 +59,16 @@ async function attempt<T>(
   } catch {
     throw new ApiError("Network error", null);
   }
-  if (!res.ok) throw new ApiError(`Request failed: ${res.status}`, res.status);
+  if (!res.ok) {
+    let detail: string | null = null;
+    try {
+      const data = await res.json();
+      if (typeof data?.detail === "string") detail = data.detail;
+    } catch {
+      // Body wasn't JSON; the status alone has to do.
+    }
+    throw new ApiError(`Request failed: ${res.status}`, res.status, detail);
+  }
   return res.json();
 }
 

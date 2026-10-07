@@ -26,6 +26,12 @@ _DIETARY: dict[str, tuple[str, str]] = {
     "halal": ("halal restaurants", "halal_restaurant"),
 }
 
+# Meals where a dietary place type fits. For coffee/dessert and drinks the meal type wins instead,
+# since vegan/halal restaurant types would rarely match cafes or bars.
+_FOOD_MEALS = {"breakfast", "lunch", "dinner"}
+
+_DIETARY_WORD = {"vegetarian": "vegetarian", "vegan": "vegan", "halal": "halal"}
+
 _PRICE_LEVELS = {
     1: "PRICE_LEVEL_INEXPENSIVE",
     2: "PRICE_LEVEL_MODERATE",
@@ -48,11 +54,18 @@ def build_search_params(
     mode: str,
     minutes: int,
 ) -> SearchParams:
-    """The search takes one place type, and dietary wins it (strict).
+    """The search takes one place type.
 
-    The query is the craving if given, otherwise the default text for whichever type won.
+    For breakfast, lunch and dinner, dietary wins it (strict). For coffee/dessert and drinks the
+    meal keeps the type and dietary is added to the query text instead.
+    The query is the craving if given, otherwise the default text for the winning type.
     """
-    default_query, included_type = _DIETARY.get(dietary) or _MEALS[after]
+    if dietary in _DIETARY and after in _FOOD_MEALS:
+        default_query, included_type = _DIETARY[dietary]
+    else:
+        default_query, included_type = _MEALS[after]
+        if dietary in _DIETARY_WORD:
+            default_query = f"{_DIETARY_WORD[dietary]} {default_query}"
 
     return SearchParams(
         query=craving.strip() or default_query,

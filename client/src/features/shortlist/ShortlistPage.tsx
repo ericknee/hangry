@@ -1,9 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { userMessage } from "../../api/http";
 import { getResults } from "../../api/sessions";
 import CardDeck from "./CardDeck";
 import LoadingScreen from "../../components/LoadingScreen";
+import { useToast } from "../../components/useToast";
 import type { Restaurant } from "../../types";
+import { ROUTES } from "../../routes";
 import RestaurantCard from "./RestaurantCard";
 
 const TOP_COUNT = 3;
@@ -19,31 +22,25 @@ function Shell({ children }: { children: ReactNode }) {
 
 export default function ShortlistPage() {
   const { sessionId = "" } = useParams();
-  // The search step passes its own failure along, so there's nothing to fetch in that case.
-  const searchError = (useLocation().state as { error?: string } | null)?.error ?? null;
-
+  const navigate = useNavigate();
+  const { showError } = useToast();
   const [restaurants, setRestaurants] = useState<Restaurant[] | null>(null);
-  const [error, setError] = useState<string | null>(searchError);
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    if (searchError) return;
     let cancelled = false;
     getResults(sessionId)
       .then((results) => !cancelled && setRestaurants(results))
-      .catch(() => !cancelled && setError(LOAD_ERROR));
+      .catch((error) => {
+        if (cancelled) return;
+        showError(userMessage(error, LOAD_ERROR));
+        navigate(ROUTES.home, { replace: true });
+      });
     return () => {
       cancelled = true;
     };
-  }, [sessionId, searchError]);
+  }, [sessionId, showError, navigate]);
 
-  if (error) {
-    return (
-      <Shell>
-        <p className="text-center text-red-500">{error}</p>
-      </Shell>
-    );
-  }
   if (restaurants === null) return <LoadingScreen message="Loading your shortlist..." />;
   if (restaurants.length === 0) {
     return (

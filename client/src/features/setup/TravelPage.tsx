@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
+import { userMessage } from "../../api/http";
 import { searchSession } from "../../api/sessions";
+import { useToast } from "../../components/useToast";
 import LoadingScreen from "../../components/LoadingScreen";
 import OptionChips from "../../components/OptionChips";
 import SetupStep from "./SetupStep";
@@ -20,6 +22,7 @@ export default function TravelPage() {
   const { sessionId = "" } = useParams();
   const navigate = useNavigate();
   const [answers, update] = useSetupAnswers(sessionId);
+  const { showError } = useToast();
   const [searching, setSearching] = useState(false);
 
   async function handleNext() {
@@ -28,8 +31,9 @@ export default function TravelPage() {
     try {
       const { count } = await searchSession(sessionId, answers);
       navigate(shortlistPath, { state: { count } });
-    } catch {
-      navigate(shortlistPath, { state: { error: SEARCH_ERROR } });
+    } catch (error) {
+      showError(userMessage(error, SEARCH_ERROR));
+      setSearching(false);
     }
   }
 
