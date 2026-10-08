@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{session_id}/restaurants/{place_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Restaurant Photo */
+        get: operations["restaurant_photo_sessions__session_id__restaurants__place_id__photo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions/{session_id}/results": {
         parameters: {
             query?: never;
@@ -156,6 +173,17 @@ export interface components {
             place_id?: string | null;
         };
         /**
+         * PhotoOut
+         * @description Credit Google requires wherever the photo is shown. The image itself is served at
+         *     `GET /sessions/{id}/restaurants/{place_id}/photo`.
+         */
+        PhotoOut: {
+            /** Author Name */
+            author_name: string | null;
+            /** Author Uri */
+            author_uri: string | null;
+        };
+        /**
          * RestaurantOut
          * @description User-facing details of one candidate; internal fields (scores, ids of members) stay out.
          */
@@ -170,6 +198,7 @@ export interface components {
             maps_uri: string | null;
             /** Name */
             name: string;
+            photo: components["schemas"]["PhotoOut"] | null;
             /** Place Id */
             place_id: string;
             /** Price Level */
@@ -360,6 +389,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restaurant_photo_sessions__session_id__restaurants__place_id__photo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                place_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -68,3 +68,19 @@ async def test_closed_places_dropped_and_fields_mapped():
     )
     assert c["rating_count"] == 120
     assert c["distance_m"] == pytest.approx(0, abs=1)
+
+
+async def test_first_photo_and_author_mapped_and_absent_photo_is_none():
+    photo = {
+        "name": "places/p1/photos/abc",
+        "authorAttributions": [{"displayName": "Ann", "uri": "https://maps.example/ann"}],
+    }
+    fake = FakePlaces(
+        [place(1, photos=[photo, {"name": "places/p1/photos/def"}])]
+        + [place(i) for i in range(2, 7)]
+    )
+    result = await retrieve_candidates(fake, lat=37.0, lng=-122.0, params=params())
+    assert result[0]["photo_name"] == "places/p1/photos/abc"
+    assert result[0]["photo_author"] == "Ann"
+    assert result[0]["photo_author_uri"] == "https://maps.example/ann"
+    assert result[1]["photo_name"] is None

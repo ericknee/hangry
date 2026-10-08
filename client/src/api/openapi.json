@@ -139,6 +139,39 @@
         "title": "LocationInput",
         "type": "object"
       },
+      "PhotoOut": {
+        "description": "Credit Google requires wherever the photo is shown. The image itself is served at\n`GET /sessions/{id}/restaurants/{place_id}/photo`.",
+        "properties": {
+          "author_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Name"
+          },
+          "author_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Uri"
+          }
+        },
+        "required": [
+          "author_name",
+          "author_uri"
+        ],
+        "title": "PhotoOut",
+        "type": "object"
+      },
       "RestaurantOut": {
         "description": "User-facing details of one candidate; internal fields (scores, ids of members) stay out.",
         "properties": {
@@ -182,6 +215,16 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PhotoOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "place_id": {
             "title": "Place Id",
@@ -230,7 +273,8 @@
           "rating_count",
           "price_level",
           "distance_m",
-          "maps_uri"
+          "maps_uri",
+          "photo"
         ],
         "title": "RestaurantOut",
         "type": "object"
@@ -550,6 +594,50 @@
           }
         },
         "summary": "Create Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/sessions/{session_id}/restaurants/{place_id}/photo": {
+      "get": {
+        "operationId": "restaurant_photo_sessions__session_id__restaurants__place_id__photo_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "place_id",
+            "required": true,
+            "schema": {
+              "title": "Place Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restaurant Photo",
         "tags": [
           "sessions"
         ]

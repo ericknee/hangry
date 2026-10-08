@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Hangry — a solo restaurant picker (MVP). The user chooses a location and answers a few taps, the
 backend runs **one** Google Places search, and the user swipes through a ranked shortlist. There is
-**no LLM** anywhere in the flow. Group sessions, the cuisine veto step and photos are not built (see
+**no LLM** anywhere in the flow. Group sessions and the cuisine veto step are not built (see
 "Not built yet"). Key product and technical decisions are listed under "Decisions" below.
 
 The earlier LangGraph graph, aggregation strategies (`maximin`, `borda`, `average_utility`) and
@@ -73,8 +73,8 @@ npm run gen:api   # regenerate the API types after changing backend/api/**/types
   candidates. **Not wired in yet** (the veto step is deferred); it has tests.
 - `types.py` holds the pipeline's shared types: `Candidate`, `SearchParams`, `Question`, `QuestionOption`.
 - `places_client.py` — Google Places API (New) client. Text Search is billed at the highest tier of
-  any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level) and runs once per
-  session; no Atmosphere fields, no photos. Adding fields can raise the tier and the bill — see
+  any requested field: `SEARCH_FIELD_MASK` is **Enterprise** (rating, price level; `places.photos` is Pro) and runs once per
+  session; no Atmosphere fields. `open_photo` fetches one image (a separate billed request). Adding fields can raise the tier and the bill — see
   "Places cost" under "Decisions" before changing the mask.
 
 ## API / persistence (`backend/api`)
@@ -93,6 +93,11 @@ models in its `types.py`.
   Places errors return 502.
 - `GET /sessions/{id}/results` returns the cached candidates ranked, trimmed to user-facing fields;
   404 once the cache entry has expired (including after any server restart).
+- `GET /sessions/{id}/restaurants/{place_id}/photo` streams one 800px photo via `PlacesClient.open_photo`
+  (`skipHttpRedirect`, then the CDN `photoUri` without the API key) using `api/media.py`'s
+  `stream_upstream`. Photo names expire, so only the cached candidate holds them; the browser may cache
+  the image for the 30-minute TTL. 404 if no photo, 502 on Places errors. `RestaurantOut.photo` carries
+  the author credit Google requires; the card shows it and falls back to the cuisine gradient.
 - DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Schema changes go
   through Alembic (`backend/alembic.ini`, migrations in `api/db/migrations/`); see
   `api/db/migrations/README.md`.
@@ -143,8 +148,8 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   only (dietary wins for breakfast/lunch/dinner; for coffee & dessert and drinks the meal type
   stays and dietary goes in the query text); query = the craving if typed, else the default text for the winning type.
 - **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
-- **Storage:** places results are only in the 30-minute in-memory cache; the DB stores IDs, setup
-  answers and rounded (3-decimal) coordinates. Photos are not fetched.
+- **Storage:** places results (including photo names) are only in the 30-minute in-memory cache; the DB stores IDs, setup
+  answers and rounded (3-decimal) coordinates. One photo per restaurant, fetched on demand through the proxy.
 - **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
   (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
   with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
@@ -156,4 +161,4 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 - Group sessions: invites, the join page (the API returns a `share_url` for `mode: "group"` that
   nothing serves), host-location search.
 - The cuisine veto question (selection logic exists in `veto/questions.py`, no endpoint or page).
-- Place photos, session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.
+- Session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.

@@ -19,6 +19,10 @@ class Candidate(TypedDict):
     distance_m: NotRequired[float | None]
     rating_count: NotRequired[int | None]
     maps_uri: NotRequired[str | None]
+    # First Places photo. The name expires, so it lives only as long as the candidate cache.
+    photo_name: NotRequired[str | None]
+    photo_author: NotRequired[str | None]
+    photo_author_uri: NotRequired[str | None]
     # Final score once ranking has run.
     aggregate_score: float | None
 

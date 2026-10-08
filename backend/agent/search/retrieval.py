@@ -34,6 +34,8 @@ def _to_candidates(places: list[dict], lat: float, lng: float) -> list[Candidate
         if p.get("businessStatus", "OPERATIONAL") != "OPERATIONAL":
             continue  # permanently or temporarily closed
         loc = p.get("location")
+        photos = p.get("photos") or []
+        author = (photos[0].get("authorAttributions") or [{}])[0] if photos else {}
         candidates.append(
             Candidate(
                 place_id=p["id"],
@@ -47,6 +49,9 @@ def _to_candidates(places: list[dict], lat: float, lng: float) -> list[Candidate
                 ),
                 rating_count=p.get("userRatingCount"),
                 maps_uri=p.get("googleMapsUri"),
+                photo_name=photos[0]["name"] if photos else None,
+                photo_author=author.get("displayName"),
+                photo_author_uri=author.get("uri"),
                 aggregate_score=None,
             )
         )

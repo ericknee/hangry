@@ -1,8 +1,9 @@
 """Thin async client for the Google Places API (New).
 
 Text Search is billed at the highest tier of any requested field. We use one
-Enterprise-tier search per session (rating, price level), no Atmosphere fields
-and no photos. See "Places cost" in CLAUDE.md for the tier and cost breakdown.
+Enterprise-tier search per session (rating, price level) and no Atmosphere fields.
+`places.photos` is Pro tier, so it does not raise the search tier; each image is a
+separate billed Place Photos request. See "Places cost" in CLAUDE.md.
 """
 
 from __future__ import annotations
@@ -13,11 +14,11 @@ import httpx
 
 PLACES_BASE_URL = "https://places.googleapis.com/v1"
 
-# Enterprise tier (rating and priceLevel set the tier) — the one search per session.
+# Enterprise tier (rating and priceLevel set the tier; photos is Pro) — the one search per session.
 SEARCH_FIELD_MASK = (
     "places.id,places.displayName,places.formattedAddress,places.location,"
     "places.primaryType,places.businessStatus,places.googleMapsUri,"
-    "places.rating,places.userRatingCount,places.priceLevel"
+    "places.rating,places.userRatingCount,places.priceLevel,places.photos"
 )
 
 # Essentials tier — just enough to resolve a chosen city to coordinates.
@@ -47,9 +48,12 @@ class PlacesClient:
             headers={"X-Goog-Api-Key": api_key},
             timeout=10.0,
         )
+        # Image bytes come from Google's CDN, which must never see our API key header.
+        self._media_http = httpx.AsyncClient(timeout=10.0)
 
     async def aclose(self) -> None:
         await self._http.aclose()
+        await self._media_http.aclose()
 
     async def __aenter__(self) -> PlacesClient:
         return self
@@ -91,6 +95,26 @@ class PlacesClient:
         )
         resp.raise_for_status()
         return resp.json().get("places", [])
+
+    async def open_photo(self, photo_name: str, *, max_width_px: int) -> httpx.Response:
+        """Open a streamed response for a photo's image bytes; the caller must close it.
+
+        One billed Place Photos request resolves the name to a CDN `photoUri`
+        (`skipHttpRedirect`), then the bytes are fetched from that URI without the key.
+        """
+        resp = await self._http.get(
+            f"/{photo_name}/media",
+            params={"maxWidthPx": max_width_px, "skipHttpRedirect": "true"},
+        )
+        resp.raise_for_status()
+        request = self._media_http.build_request("GET", resp.json()["photoUri"])
+        upstream = await self._media_http.send(request, stream=True)
+        try:
+            upstream.raise_for_status()
+        except httpx.HTTPError:
+            await upstream.aclose()
+            raise
+        return upstream
 
     async def autocomplete_cities(self, input_text: str) -> list[dict]:
         """City-only autocomplete predictions, Essentials tier (Autocomplete (New))."""
