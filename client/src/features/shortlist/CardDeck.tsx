@@ -43,7 +43,7 @@ function DeckCard({
   exitDir: -1 | 1 | null;
   pulled: boolean; // the bottom card is sliding out from under the deck to land on top
   enterDelay: number | null; // set only for cards added after the first render
-  onSwipe: (dir: -1 | 1) => void;
+  onSwipe: (dir: -1 | 1) => boolean; // true if the deck started a move
   onExited: () => void;
   onPulled: () => void;
 }) {
@@ -115,8 +115,10 @@ function DeckCard({
         onDragEnd={(_, info) => {
           const { offset, velocity } = info;
           if (Math.abs(offset.x) > SWIPE_DISTANCE_PX || Math.abs(velocity.x) > SWIPE_VELOCITY) {
-            onSwipe(offset.x < 0 ? -1 : 1);
-            if (offset.x > 0) springBack(); // the card drops back one place as the bottom card comes up
+            const started = onSwipe(offset.x < 0 ? -1 : 1);
+            // Only a left swipe that started an exit leaves the card flying out. A right swipe
+            // drops the card back one place as the bottom card comes up; a refused swipe resets it.
+            if (!started || offset.x > 0) springBack();
             return;
           }
           // TODO(future): a downward swipe (offset.y > ~120) will interact with the restaurant (choose/save).
@@ -181,9 +183,10 @@ export default function CardDeck({
     if (topId !== undefined) onTopChange?.(topId);
   }, [topId, onTopChange]);
 
-  function requestExit(dir: -1 | 1) {
-    if (exit || pulledId || ordered.length < 2) return;
+  function requestExit(dir: -1 | 1): boolean {
+    if (exit || pulledId || ordered.length < 2) return false;
     setExit({ id: topId, dir });
+    return true;
   }
 
   function finishExit() {
@@ -191,9 +194,10 @@ export default function CardDeck({
     setExit(null);
   }
 
-  function previous() {
-    if (exit || pulledId || ordered.length < 2) return;
+  function previous(): boolean {
+    if (exit || pulledId || ordered.length < 2) return false;
     setPulledId(ordered[ordered.length - 1]);
+    return true;
   }
 
   function finishPull() {
