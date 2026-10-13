@@ -11,7 +11,7 @@ def stream_upstream(upstream: httpx.Response, *, max_age_s: int) -> StreamingRes
     `private` keeps shared proxies from storing it; the browser may reuse it for `max_age_s`.
     """
     return StreamingResponse(
-        upstream.aiter_raw(),
+        upstream.aiter_bytes(),  # decoded, since Content-Encoding is not forwarded
         media_type=upstream.headers.get("content-type", "application/octet-stream"),
         headers={"Cache-Control": f"private, max-age={max_age_s}"},
         background=BackgroundTask(upstream.aclose),

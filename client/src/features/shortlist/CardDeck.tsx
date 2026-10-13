@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 
 export type DeckItem = { id: string; content: ReactNode };
@@ -65,21 +65,29 @@ function DeckCard({
     animate(y, 0, SPRING);
   }, [slot, x, y]);
 
+  // The callbacks are new closures every render; refs keep a re-render from restarting the animations.
+  const onExitedRef = useRef(onExited);
+  const onPulledRef = useRef(onPulled);
+  useEffect(() => {
+    onExitedRef.current = onExited;
+    onPulledRef.current = onPulled;
+  });
+
   // The top card flies out when a swipe or the Next button asks for it.
   useEffect(() => {
     if (!isTop || exitDir === null) return;
     const controls = animate(x, exitDir * FLY_OUT_PX, { duration: reduceMotion ? 0 : SLIDE_OUT_S, ease: "easeIn" });
-    controls.then(onExited);
+    controls.then(() => onExitedRef.current());
     return () => controls.stop();
-  }, [isTop, exitDir, reduceMotion, x, onExited]);
+  }, [isTop, exitDir, reduceMotion, x]);
 
   // The bottom card slides out to the side from under the deck (the reverse of the fly-out).
   useEffect(() => {
     if (!pulled) return;
     const controls = animate(x, -FLY_OUT_PX, { duration: reduceMotion ? 0 : SLIDE_OUT_S, ease: "easeOut" });
-    controls.then(onPulled);
+    controls.then(() => onPulledRef.current());
     return () => controls.stop();
-  }, [pulled, reduceMotion, x, onPulled]);
+  }, [pulled, reduceMotion, x]);
 
   function springBack() {
     animate(x, 0, SPRING);

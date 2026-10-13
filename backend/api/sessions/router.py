@@ -9,7 +9,7 @@ from api.db.database import get_db
 from api.deps import get_candidate_cache, get_places
 from api.media import stream_upstream
 from api.sessions import service
-from api.sessions.cache import TTL_SECONDS, CandidateCache
+from api.sessions.cache import CandidateCache
 from api.sessions.types import (
     CreateSessionRequest,
     ResultsResponse,
@@ -83,4 +83,4 @@ async def restaurant_photo(
     except service.PhotoFetchFailed as exc:
         raise HTTPException(status_code=502, detail=f"Photo fetch failed: {exc}") from exc
     # Photo names expire, so the browser may keep the image no longer than the candidate cache does.
-    return stream_upstream(upstream, max_age_s=int(TTL_SECONDS))
+    return stream_upstream(upstream, max_age_s=int(cache.remaining_seconds(session_id)))

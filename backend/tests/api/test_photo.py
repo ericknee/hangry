@@ -58,6 +58,15 @@ def test_photo_streams_bytes_with_browser_cache_header():
     assert places.calls == [("places/p1/photos/abc", 800)]
 
 
+def test_photo_max_age_is_the_cache_entrys_remaining_time():
+    now = [0.0]
+    cache = CandidateCache(ttl_seconds=1800, clock=lambda: now[0])
+    cache.set("s1", [candidate("p1", "places/p1/photos/abc")])
+    now[0] = 1500.0  # 25 minutes in
+    resp = get_photo(cache, FakePlaces())
+    assert resp.headers["cache-control"] == "private, max-age=300"
+
+
 def test_photo_404_for_unknown_session_unknown_place_or_no_photo():
     places = FakePlaces()
     assert get_photo(CandidateCache(), places).status_code == 404
