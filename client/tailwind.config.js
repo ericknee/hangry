@@ -13,6 +13,7 @@ export default {
         muted: token("muted"),
         accent: token("accent"),
         "accent-hover": token("accent-hover"),
+        "on-accent": token("on-accent"),
         line: token("line"),
       },
       fontFamily: {

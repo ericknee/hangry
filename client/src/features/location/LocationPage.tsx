@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes";
 import { userMessage } from "../../api/http";
+import Button from "../../components/Button";
+import Page from "../../components/Page";
+import TextInput from "../../components/TextInput";
 import { useToast } from "../../components/useToast";
 import { autocompleteCities, getCityLocation } from "../../api/places";
 import type { CityPrediction, PendingLocation } from "../../types";
@@ -105,63 +108,56 @@ export default function LocationPage() {
   }
 
   return (
-    <main className="page">
-      <div className="flex w-full max-w-md flex-col gap-4">
-        <h1 className="text-center text-5xl font-bold tracking-tight text-accent">Hangry?</h1>
+    <Page>
+      <h1 className="text-center text-5xl font-bold tracking-tight text-accent">Hangry?</h1>
 
-        <div className="relative">
-          <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-sm focus-within:border-accent">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-              <PinIcon />
-            </span>
-            <input
-              className="w-full bg-transparent text-lg text-ink placeholder:text-muted focus:outline-none"
-              placeholder="Enter your location..."
-              value={locationText}
-              onChange={(e) => {
-                setLocationText(e.target.value);
-                setSelectedLocation(null);
-              }}
-              onFocus={() => setShowPredictions(true)}
-              onBlur={() => setTimeout(() => setShowPredictions(false), 150)}
-            />
-          </div>
-          {showPredictions && (
-            <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-2xl border border-line bg-surface shadow-md">
-              <li>
+      <div className="relative">
+        <div className="card flex items-center gap-3 p-3 shadow-sm focus-within:border-accent">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
+            <PinIcon />
+          </span>
+          <TextInput
+            variant="bare"
+            placeholder="Enter your location..."
+            value={locationText}
+            onChange={(e) => {
+              setLocationText(e.target.value);
+              setSelectedLocation(null);
+            }}
+            onFocus={() => setShowPredictions(true)}
+            onBlur={() => setTimeout(() => setShowPredictions(false), 150)}
+          />
+        </div>
+        {showPredictions && (
+          <ul className="card absolute inset-x-0 top-full z-10 mt-1 overflow-hidden">
+            <li>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-base font-semibold text-accent hover:bg-accent/10"
+                onMouseDown={selectCurrentLocation}
+              >
+                <CrosshairIcon />
+                {CURRENT_LOCATION_LABEL}
+              </button>
+            </li>
+            {predictions.map((prediction) => (
+              <li key={prediction.place_id}>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-base font-semibold text-accent hover:bg-accent/10"
-                  onMouseDown={selectCurrentLocation}
+                  className="w-full px-4 py-3 text-left text-base text-ink hover:bg-accent/10"
+                  onMouseDown={() => selectPrediction(prediction)}
                 >
-                  <CrosshairIcon />
-                  {CURRENT_LOCATION_LABEL}
+                  {prediction.description}
                 </button>
               </li>
-              {predictions.map((prediction) => (
-                <li key={prediction.place_id}>
-                  <button
-                    type="button"
-                    className="w-full px-4 py-3 text-left text-base text-ink hover:bg-accent/10"
-                    onMouseDown={() => selectPrediction(prediction)}
-                  >
-                    {prediction.description}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="btn-primary mt-2"
-          disabled={selectedLocation === null}
-          onClick={handleNext}
-        >
-          Next
-        </button>
+            ))}
+          </ul>
+        )}
       </div>
-    </main>
+
+      <Button className="mt-2" disabled={selectedLocation === null} onClick={handleNext}>
+        Next
+      </Button>
+    </Page>
   );
 }

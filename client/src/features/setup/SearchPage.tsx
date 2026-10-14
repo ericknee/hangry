@@ -2,6 +2,9 @@ import { useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 import { userMessage } from "../../api/http";
 import { createSession } from "../../api/sessions";
+import Button from "../../components/Button";
+import Page from "../../components/Page";
+import TextInput from "../../components/TextInput";
 import { useToast } from "../../components/useToast";
 import { ROUTES } from "../../routes";
 import { loadPendingLocation } from "../location/pendingLocation";
@@ -28,30 +31,23 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="page">
-      <div className="flex w-full max-w-md flex-col gap-4">
-        <h1 className="text-center text-2xl font-semibold text-ink">
-          What are you craving? <span className="font-normal text-muted">optional</span>
-        </h1>
-        <input
-          autoFocus
-          className="w-full rounded-2xl border border-line bg-surface px-4 py-4 text-center text-xl text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          placeholder="Sushi, something spicy, comfort food..."
-          value={craving}
-          onChange={(e) => setCraving(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !submitting) handleNext();
-          }}
-        />
-        <button
-          type="button"
-          disabled={submitting}
-          className="btn-primary mt-2"
-          onClick={handleNext}
-        >
-          Next
-        </button>
-      </div>
-    </main>
+    <Page>
+      <h1 className="title text-center">
+        What are you craving? <span className="font-normal text-muted">optional</span>
+      </h1>
+      <TextInput
+        autoFocus
+        className="text-center"
+        placeholder="Sushi, something spicy, comfort food..."
+        value={craving}
+        onChange={(e) => setCraving(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !submitting) handleNext();
+        }}
+      />
+      <Button disabled={submitting} className="mt-2" onClick={handleNext}>
+        Next
+      </Button>
+    </Page>
   );
 }

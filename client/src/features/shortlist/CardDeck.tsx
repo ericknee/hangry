@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import Button from "../../components/Button";
 
 export type DeckItem = { id: string; content: ReactNode };
 
@@ -141,16 +142,11 @@ function RoundButton({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface text-accent shadow-md hover:border-accent"
-    >
+    <Button variant="icon" aria-label={label} onClick={onClick}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         {children}
       </svg>
-    </button>
+    </Button>
   );
 }
 

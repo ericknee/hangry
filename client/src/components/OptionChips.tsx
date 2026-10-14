@@ -19,11 +19,7 @@ export default function OptionChips<T extends string | number>({
             key={option.value}
             type="button"
             aria-pressed={isSelected}
-            className={`min-h-[3rem] rounded-full border px-6 py-3 text-base font-medium shadow-sm transition-colors ${
-              isSelected
-                ? "border-accent bg-accent text-white"
-                : "border-line bg-surface text-ink hover:border-accent"
-            }`}
+            className="chip"
             onClick={() => onToggle(option.value)}
           >
             {option.label}

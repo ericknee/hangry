@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Button from "../../components/Button";
+import Page from "../../components/Page";
 
 interface SetupStepProps {
   question: string;
@@ -10,19 +12,12 @@ interface SetupStepProps {
 /** Full-page layout for one setup question: heading, answer controls, Next button. */
 export default function SetupStep({ question, children, onNext, nextDisabled }: SetupStepProps) {
   return (
-    <main className="page">
-      <div className="flex w-full max-w-md flex-col gap-6">
-        <h1 className="text-3xl font-bold tracking-tight text-ink">{question}</h1>
-        {children}
-        <button
-          type="button"
-          disabled={nextDisabled}
-          className="btn-primary mt-2"
-          onClick={onNext}
-        >
-          Next
-        </button>
-      </div>
-    </main>
+    <Page gap="gap-6">
+      <h1 className="title-lg">{question}</h1>
+      {children}
+      <Button disabled={nextDisabled} className="mt-2" onClick={onNext}>
+        Next
+      </Button>
+    </Page>
   );
 }

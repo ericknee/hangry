@@ -8,8 +8,9 @@
   --surface: 255 255 255;
   --ink: 31 26 23;
   --muted: 122 110 102;
-  --accent: 242 84 45;
-  --accent-hover: 217 68 31;
+  --accent: 204 62 28; /* white on this is about 4.9:1 */
+  --accent-hover: 176 48 18;
+  --on-accent: 255 255 255;
   --line: 234 223 214;
   color-scheme: light;
 }
@@ -22,6 +23,7 @@
     --muted: 168 156 147;
     --accent: 255 106 61;
     --accent-hover: 255 128 90;
+    --on-accent: 23 19 17; /* dark ink on the light accent is about 6.6:1 */
     --line: 58 49 44;
     color-scheme: dark;
   }
@@ -38,8 +40,37 @@
     @apply flex min-h-screen items-center justify-center bg-canvas p-6;
   }
 
+  /* Bordered surface: cards, inputs, dropdowns, toasts. Override radius/shadow with utilities. */
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-md;
+  }
+
+  .title {
+    @apply text-2xl font-semibold text-ink;
+  }
+
+  .title-lg {
+    @apply text-3xl font-bold tracking-tight text-ink;
+  }
+
+  .input {
+    @apply w-full rounded-2xl border border-line bg-surface px-4 py-4 text-xl text-ink placeholder:text-muted focus:border-accent focus:outline-none;
+  }
+
+  .btn-secondary {
+    @apply rounded-full border border-line bg-surface px-6 py-3 text-base font-semibold text-accent shadow-sm transition-colors hover:border-accent;
+  }
+
+  .btn-icon {
+    @apply flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface text-accent shadow-md hover:border-accent;
+  }
+
+  .chip {
+    @apply min-h-[3rem] rounded-full border border-line bg-surface px-6 py-3 text-base font-medium text-ink shadow-sm transition-colors hover:border-accent aria-pressed:border-accent aria-pressed:bg-accent aria-pressed:text-on-accent;
+  }
+
   .btn-primary {
-    @apply w-full rounded-full bg-accent py-4 text-lg font-semibold text-white shadow-md transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line disabled:text-muted disabled:shadow-none;
+    @apply w-full rounded-full border border-transparent bg-accent py-4 text-lg font-semibold text-on-accent shadow-md transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:border-muted/40 disabled:bg-line disabled:text-ink/60 disabled:shadow-none;
   }
 }
 

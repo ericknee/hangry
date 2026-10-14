@@ -40,7 +40,7 @@ export default function RestaurantCard({
   const price = restaurant.price_level ? "$".repeat(restaurant.price_level) : null;
 
   return (
-    <article className="flex h-[30rem] select-none flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-lg">
+    <article className="card flex h-[30rem] select-none flex-col overflow-hidden rounded-3xl shadow-lg">
       <div
         className="relative flex flex-[3] flex-col justify-end gap-3 p-5"
         style={{ background: cuisineGradient(restaurant.cuisine) }}
