@@ -482,6 +482,23 @@
               "title": "Input",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "session_token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Token"
+            }
           }
         ],
         "responses": {
@@ -527,6 +544,23 @@
             "schema": {
               "title": "Place Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session_token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Token"
             }
           }
         ],

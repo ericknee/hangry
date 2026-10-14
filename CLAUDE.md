@@ -155,6 +155,13 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
   Google's pricing page as read in 2026-10 and have not been checked against a live call or the bill.
   A place photo is a separate request at about $0.007 each.
+- **City autocomplete cost:** the client makes one session token (UUID) per typing session and sends it with
+  every autocomplete call and the city lookup (`session_token` query param); it is replaced after each
+  selection. Only the first 12 requests in a session bill as Autocomplete Requests (about $2.83 per 1,000,
+  10,000 free a month), so the token saves little on short city searches. The lookup ends the session with
+  `LOCATION_FIELD_MASK`, which includes `displayName` (Pro). Google bills a session that ends in a Pro-or-higher
+  Place Details request at the Enterprise + Atmosphere rate; an Essentials-only mask (`id,formattedAddress,location`)
+  would be Place Details Essentials (about $5 per 1,000, 10,000 free). Check the SKU breakdown on the first bill.
 
 ## Not built yet
 

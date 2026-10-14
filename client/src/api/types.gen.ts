@@ -310,6 +310,7 @@ export interface operations {
         parameters: {
             query: {
                 input: string;
+                session_token?: string | null;
             };
             header?: never;
             path?: never;
@@ -339,7 +340,9 @@ export interface operations {
     };
     city_location_places_cities__place_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                session_token?: string | null;
+            };
             header?: never;
             path: {
                 place_id: string;
