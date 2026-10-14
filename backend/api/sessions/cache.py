@@ -33,3 +33,8 @@ class CandidateCache:
             del self._items[session_id]
             return None
         return item[1]
+
+    def remaining_seconds(self, session_id: str) -> float:
+        """Time left before the session's entry expires; 0 if there is none."""
+        item = self._items.get(session_id)
+        return max(0.0, item[0] - self._clock()) if item else 0.0

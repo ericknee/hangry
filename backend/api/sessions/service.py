@@ -2,6 +2,7 @@
 
 import uuid
 
+import httpx
 from agent.places_client import PlacesClient
 from agent.search.params import build_search_params
 from agent.search.ranking import rank_candidates
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.models import SessionRecord
 from api.errors import PLACES_ERRORS, describe_error
 from api.sessions.cache import CandidateCache
-from api.sessions.types import CreateSessionRequest, RestaurantOut, SearchRequest
+from api.sessions.types import CreateSessionRequest, PhotoOut, RestaurantOut, SearchRequest
 
 # 3 decimals is roughly 110 m: coarse enough to hide the exact spot, fine enough
 # that the search (which reads these stored coordinates) is off by <~80 m.
@@ -33,6 +34,14 @@ class SearchFailed(Exception):
 
 class ResultsNotFound(Exception):
     """No cached results for the session: never searched, expired, or the server restarted."""
+
+
+class PhotoNotFound(Exception):
+    """The session's results, the place, or the place's photo is not available."""
+
+
+class PhotoFetchFailed(Exception):
+    """Fetching the image from Google failed (network, bad key, quota, expired name)."""
 
 
 def _initial_state(payload: CreateSessionRequest) -> dict:
@@ -105,6 +114,11 @@ def _to_restaurant(c: Candidate) -> RestaurantOut:
         price_level=c["price_level"],
         distance_m=c.get("distance_m"),
         maps_uri=c.get("maps_uri"),
+        photo=(
+            PhotoOut(author_name=c.get("photo_author"), author_uri=c.get("photo_author_uri"))
+            if c.get("photo_name")
+            else None
+        ),
     )
 
 
@@ -113,3 +127,21 @@ def ranked_restaurants(cache: CandidateCache, session_id: str) -> list[Restauran
     if candidates is None:
         raise ResultsNotFound(session_id)
     return [_to_restaurant(c) for c in rank_candidates(candidates)]
+
+
+PHOTO_MAX_WIDTH_PX = 800  # sharp on a phone-width card at 2x density
+
+
+async def open_photo(
+    places: PlacesClient, cache: CandidateCache, session_id: str, place_id: str
+) -> httpx.Response:
+    """Open the cached candidate's photo as a streamed upstream response (caller closes it)."""
+    candidates = cache.get(session_id)
+    candidate = next((c for c in candidates or [] if c["place_id"] == place_id), None)
+    photo_name = candidate.get("photo_name") if candidate else None
+    if not photo_name:
+        raise PhotoNotFound(place_id)
+    try:
+        return await places.open_photo(photo_name, max_width_px=PHOTO_MAX_WIDTH_PX)
+    except PLACES_ERRORS as exc:
+        raise PhotoFetchFailed(describe_error(exc)) from exc

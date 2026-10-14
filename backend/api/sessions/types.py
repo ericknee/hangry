@@ -40,6 +40,14 @@ class SearchResponse(BaseModel):
     count: int
 
 
+class PhotoOut(BaseModel):
+    """Credit Google requires wherever the photo is shown. The image itself is served at
+    `GET /sessions/{id}/restaurants/{place_id}/photo`."""
+
+    author_name: str | None
+    author_uri: str | None
+
+
 class RestaurantOut(BaseModel):
     """User-facing details of one candidate; internal fields (scores, ids of members) stay out."""
 
@@ -52,6 +60,8 @@ class RestaurantOut(BaseModel):
     price_level: int | None
     distance_m: float | None
     maps_uri: str | None
+    # None when the place has no photo.
+    photo: PhotoOut | None
 
 
 class ResultsResponse(BaseModel):

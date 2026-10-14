@@ -41,6 +41,11 @@ export async function getResults(sessionId: string): Promise<Restaurant[]> {
   return restaurants;
 }
 
+/** URL of a restaurant's photo, served by the backend proxy (the Google key stays server-side). */
+export function photoUrl(sessionId: string, placeId: string): string {
+  return `/api/sessions/${encodeURIComponent(sessionId)}/restaurants/${encodeURIComponent(placeId)}/photo`;
+}
+
 export async function createSession(params: CreateSessionParams): Promise<CreateSessionResponse> {
   const body: CreateSessionRequest = {
     mode: params.mode,

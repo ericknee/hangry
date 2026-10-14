@@ -11,6 +11,7 @@
     "gen:api": "uv run python ../scripts/export_openapi.py && openapi-typescript src/api/openapi.json -o src/api/types.gen.ts"
   },
   "dependencies": {
+    "framer-motion": "^11.18.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
