@@ -1,4 +1,5 @@
 import { useState } from "react";
+import GoogleMapsAttribution from "../../components/GoogleMapsAttribution";
 import type { Restaurant } from "../../types";
 import { cuisineGradient, cuisineLabel, distanceLabel } from "./format";
 
@@ -78,17 +79,22 @@ export default function RestaurantCard({
       </div>
       <div className="flex flex-[1] flex-col justify-between gap-2 p-5">
         <p className="text-sm text-ink">{restaurant.address}</p>
-        {restaurant.maps_uri && (
-          <a
-            href={restaurant.maps_uri}
-            target="_blank"
-            rel="noopener noreferrer"
-            draggable={false}
-            className="self-start text-base font-semibold text-accent underline"
-          >
-            Open in Google Maps
-          </a>
-        )}
+        <div className="flex items-end justify-between gap-3">
+          {restaurant.maps_uri ? (
+            <a
+              href={restaurant.maps_uri}
+              target="_blank"
+              rel="noopener noreferrer"
+              draggable={false}
+              className="text-base font-semibold text-accent underline"
+            >
+              Open in Google Maps
+            </a>
+          ) : (
+            <span />
+          )}
+          <GoogleMapsAttribution />
+        </div>
       </div>
     </article>
   );
