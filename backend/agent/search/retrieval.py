@@ -49,7 +49,7 @@ def _to_candidates(places: list[dict], lat: float, lng: float) -> list[Candidate
                 ),
                 rating_count=p.get("userRatingCount"),
                 maps_uri=p.get("googleMapsUri"),
-                photo_name=photos[0]["name"] if photos else None,
+                photo_name=photos[0].get("name") if photos else None,
                 photo_author=author.get("displayName"),
                 photo_author_uri=author.get("uri"),
                 aggregate_score=None,

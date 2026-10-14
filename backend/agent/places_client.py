@@ -107,13 +107,23 @@ class PlacesClient:
             params={"maxWidthPx": max_width_px, "skipHttpRedirect": "true"},
         )
         resp.raise_for_status()
-        request = self._media_http.build_request("GET", resp.json()["photoUri"])
+        body = resp.json()
+        photo_uri = body.get("photoUri") if isinstance(body, dict) else None
+        if not isinstance(photo_uri, str) or not photo_uri:
+            raise ValueError("Place Photos response had no photoUri")  # mapped to 502
+        request = self._media_http.build_request("GET", photo_uri)
         upstream = await self._media_http.send(request, stream=True)
         try:
             upstream.raise_for_status()
         except httpx.HTTPError:
             await upstream.aclose()
             raise
+        content_type = upstream.headers.get("content-type", "")
+        if not content_type.startswith("image/"):
+            await upstream.aclose()
+            raise ValueError(
+                f"Photo CDN returned {content_type or 'no content type'}, not an image"
+            )
         return upstream
 
     async def autocomplete_cities(self, input_text: str) -> list[dict]:

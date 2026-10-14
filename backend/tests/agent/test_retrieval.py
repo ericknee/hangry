@@ -84,3 +84,11 @@ async def test_first_photo_and_author_mapped_and_absent_photo_is_none():
     assert result[0]["photo_author"] == "Ann"
     assert result[0]["photo_author_uri"] == "https://maps.example/ann"
     assert result[1]["photo_name"] is None
+
+
+async def test_photo_entry_without_a_name_is_treated_as_no_photo():
+    fake = FakePlaces(
+        [place(1, photos=[{"authorAttributions": []}])] + [place(i) for i in range(2, 7)]
+    )
+    result = await retrieve_candidates(fake, lat=37.0, lng=-122.0, params=params())
+    assert result[0]["photo_name"] is None

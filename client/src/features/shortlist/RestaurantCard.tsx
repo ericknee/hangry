@@ -10,6 +10,8 @@ function Pill({ children }: { children: React.ReactNode }) {
   );
 }
 
+const FALLBACK_PHOTO_CREDIT = "Google Maps user"; // when Places returns a photo without an author name
+
 /** Google requires the photographer's credit wherever their photo is shown. */
 function PhotoCredit({ name, uri }: { name: string; uri: string | null }) {
   const className = "absolute right-3 top-3 rounded bg-black/40 px-2 py-0.5 text-xs text-white/90";
@@ -52,8 +54,11 @@ export default function RestaurantCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
-        {showPhoto && restaurant.photo?.author_name && (
-          <PhotoCredit name={restaurant.photo.author_name} uri={restaurant.photo.author_uri} />
+        {showPhoto && (
+          <PhotoCredit
+            name={restaurant.photo?.author_name ?? FALLBACK_PHOTO_CREDIT}
+            uri={restaurant.photo?.author_uri ?? null}
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
         <div className="relative flex flex-col gap-3">

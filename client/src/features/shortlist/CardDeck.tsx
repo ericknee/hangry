@@ -173,9 +173,11 @@ export default function CardDeck({
 
   // Items added after mount join the end of the cycle; items that disappear are dropped.
   const ids = items.map((i) => i.id);
-  const ordered = [...order.filter((id) => ids.includes(id)), ...ids.filter((id) => !order.includes(id))];
+  const idSet = new Set(ids);
+  const orderSet = new Set(order);
+  const ordered = [...order.filter((id) => idSet.has(id)), ...ids.filter((id) => !orderSet.has(id))];
   const byId = new Map(items.map((i) => [i.id, i]));
-  const newIds = ids.filter((id) => !initialIds.has(id));
+  const newIndex = new Map(ids.filter((id) => !initialIds.has(id)).map((id, i) => [id, i]));
 
   const topId = ordered[0];
 
@@ -216,7 +218,7 @@ export default function CardDeck({
             count={ordered.length}
             exitDir={exit?.id === id ? exit.dir : null}
             pulled={pulledId === id}
-            enterDelay={newIds.includes(id) ? newIds.indexOf(id) * ENTER_STAGGER_S : null}
+            enterDelay={newIndex.has(id) ? newIndex.get(id)! * ENTER_STAGGER_S : null}
             onSwipe={(dir) => (dir < 0 ? requestExit(-1) : previous())}
             onExited={finishExit}
             onPulled={finishPull}
