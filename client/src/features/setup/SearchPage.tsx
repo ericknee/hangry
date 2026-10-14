@@ -16,6 +16,7 @@ export default function SearchPage() {
   const [submitting, setSubmitting] = useState(false);
 
   async function handleNext() {
+    if (submitting) return;
     setSubmitting(true);
     try {
       const session = await createSession({
@@ -45,8 +46,8 @@ export default function SearchPage() {
           if (e.key === "Enter" && !submitting) handleNext();
         }}
       />
-      <Button disabled={submitting} className="mt-2" onClick={handleNext}>
-        Next
+      <Button aria-busy={submitting} className="mt-2" onClick={handleNext}>
+        {submitting ? "Loading..." : "Next"}
       </Button>
     </Page>
   );

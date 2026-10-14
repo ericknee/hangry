@@ -77,7 +77,7 @@ export default function RestaurantCard({
         </div>
       </div>
       <div className="flex flex-[1] flex-col justify-between gap-2 p-5">
-        <p className="text-sm text-muted">{restaurant.address}</p>
+        <p className="text-sm text-ink">{restaurant.address}</p>
         {restaurant.maps_uri && (
           <a
             href={restaurant.maps_uri}

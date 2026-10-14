@@ -4,6 +4,10 @@ const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   darkMode: "media",
+  future: {
+    // Wrap hover: styles in @media (hover: hover) so taps don't leave a sticky hover state on touch screens.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {
@@ -14,6 +18,7 @@ export default {
         accent: token("accent"),
         "accent-hover": token("accent-hover"),
         "on-accent": token("on-accent"),
+        danger: token("danger"),
         line: token("line"),
       },
       fontFamily: {

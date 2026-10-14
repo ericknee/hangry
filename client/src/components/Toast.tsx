@@ -30,8 +30,14 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
         <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center p-4">
           <div
             role="alert"
-            className="card toast-in pointer-events-auto flex w-full max-w-md items-start gap-3 px-4 py-3 text-base text-ink shadow-lg ring-2 ring-accent"
+            className="card toast-in pointer-events-auto flex w-full max-w-md items-start gap-3 px-4 py-3 text-base text-ink shadow-lg ring-2 ring-danger"
           >
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger text-sm font-bold text-surface"
+            >
+              !
+            </span>
             <p className="flex-1">{message}</p>
             <button
               type="button"
