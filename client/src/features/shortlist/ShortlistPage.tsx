@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { userMessage } from "../../api/http";
 import { getResults, photoUrl } from "../../api/sessions";
 import CardDeck from "./CardDeck";
+import Button from "../../components/Button";
 import LoadingScreen from "../../components/LoadingScreen";
+import Page from "../../components/Page";
 import { useToast } from "../../components/useToast";
 import type { Restaurant } from "../../types";
 import { ROUTES } from "../../routes";
@@ -13,14 +15,6 @@ const TOP_COUNT = 3;
 const PHOTO_BATCH = 5; // photos requested per batch; each one is a billed Places request
 const PHOTO_LOOKAHEAD = 2; // start the next batch when a card this far ahead of the top has no photo yet
 const LOAD_ERROR = "Couldn't load your results. Please try again.";
-
-function Shell({ children }: { children: ReactNode }) {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200 p-6">
-      <div className="flex w-full max-w-md flex-col gap-4">{children}</div>
-    </main>
-  );
-}
 
 export default function ShortlistPage() {
   const { sessionId = "" } = useParams();
@@ -81,17 +75,17 @@ export default function ShortlistPage() {
   if (restaurants === null) return <LoadingScreen message="Loading your shortlist..." />;
   if (restaurants.length === 0) {
     return (
-      <Shell>
-        <p className="text-center text-blue-900">No places found.</p>
-      </Shell>
+      <Page>
+        <p className="text-center text-ink">No places found.</p>
+      </Page>
     );
   }
 
   const hasMore = !showAll && restaurants.length > TOP_COUNT;
 
   return (
-    <Shell>
-      <h1 className="text-center text-2xl font-medium text-blue-950">Your shortlist</h1>
+    <Page>
+      <h1 className="title text-center">Your shortlist</h1>
       <CardDeck
         onTopChange={onTopChange}
         items={visible.map((r) => ({ id: r.place_id, content: (
@@ -103,17 +97,17 @@ export default function ShortlistPage() {
         }))}
       />
       {hasMore && (
-        <button
-          type="button"
-          className="self-center rounded-full bg-white/80 px-5 py-3 text-sm font-medium text-blue-700 shadow-sm hover:bg-white"
+        <Button
+          variant="secondary"
+          className="self-center"
           onClick={() => {
             setShowAll(true);
             loadPhotoBatch(restaurants, TOP_COUNT);
           }}
         >
           More recommendations
-        </button>
+        </Button>
       )}
-    </Shell>
+    </Page>
   );
 }

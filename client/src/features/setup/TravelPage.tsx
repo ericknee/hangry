@@ -47,7 +47,7 @@ export default function TravelPage() {
         onToggle={(value) => update({ mode: value })}
       />
       <div>
-        <p className="text-center text-3xl font-medium text-blue-950">{answers.minutes} min</p>
+        <p className="text-center text-4xl font-bold text-ink">{answers.minutes} min</p>
         <input
           type="range"
           min={MIN_MINUTES}
@@ -55,9 +55,9 @@ export default function TravelPage() {
           step={MINUTES_STEP}
           value={answers.minutes}
           onChange={(e) => update({ minutes: Number(e.target.value) })}
-          className="mt-4 w-full accent-blue-500"
+          className="mt-4 w-full accent-accent"
         />
-        <div className="mt-1 flex justify-between text-xs text-blue-300">
+        <div className="mt-1 flex justify-between text-xs text-muted">
           <span>{MIN_MINUTES} min</span>
           <span>{MAX_MINUTES} min</span>
         </div>

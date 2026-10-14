@@ -40,7 +40,7 @@ export default function RestaurantCard({
   const price = restaurant.price_level ? "$".repeat(restaurant.price_level) : null;
 
   return (
-    <article className="flex h-[30rem] select-none flex-col overflow-hidden rounded-3xl bg-white shadow-lg">
+    <article className="card flex h-[30rem] select-none flex-col overflow-hidden rounded-3xl shadow-lg">
       <div
         className="relative flex flex-[3] flex-col justify-end gap-3 p-5"
         style={{ background: cuisineGradient(restaurant.cuisine) }}
@@ -77,14 +77,14 @@ export default function RestaurantCard({
         </div>
       </div>
       <div className="flex flex-[1] flex-col justify-between gap-2 p-5">
-        <p className="text-sm text-blue-900">{restaurant.address}</p>
+        <p className="text-sm text-ink">{restaurant.address}</p>
         {restaurant.maps_uri && (
           <a
             href={restaurant.maps_uri}
             target="_blank"
             rel="noopener noreferrer"
             draggable={false}
-            className="self-start text-sm font-medium text-blue-600 underline"
+            className="self-start text-base font-semibold text-accent underline"
           >
             Open in Google Maps
           </a>
