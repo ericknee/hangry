@@ -105,17 +105,17 @@ export default function LocationPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200 p-6">
+    <main className="page">
       <div className="flex w-full max-w-md flex-col gap-4">
-        <h1 className="text-center text-4xl font-medium text-blue-950">Hangry?</h1>
+        <h1 className="text-center text-5xl font-bold tracking-tight text-accent">Hangry?</h1>
 
         <div className="relative">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/80 p-3 shadow-sm">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-500">
+          <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-sm focus-within:border-accent">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
               <PinIcon />
             </span>
             <input
-              className="w-full bg-transparent text-blue-900 placeholder:text-blue-300 focus:outline-none"
+              className="w-full bg-transparent text-lg text-ink placeholder:text-muted focus:outline-none"
               placeholder="Enter your location..."
               value={locationText}
               onChange={(e) => {
@@ -127,11 +127,11 @@ export default function LocationPage() {
             />
           </div>
           {showPredictions && (
-            <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-2xl bg-white shadow-md">
+            <ul className="absolute inset-x-0 top-full z-10 mt-1 overflow-hidden rounded-2xl border border-line bg-surface shadow-md">
               <li>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50"
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-base font-semibold text-accent hover:bg-accent/10"
                   onMouseDown={selectCurrentLocation}
                 >
                   <CrosshairIcon />
@@ -142,7 +142,7 @@ export default function LocationPage() {
                 <li key={prediction.place_id}>
                   <button
                     type="button"
-                    className="w-full px-4 py-2 text-left text-sm text-blue-900 hover:bg-blue-50"
+                    className="w-full px-4 py-3 text-left text-base text-ink hover:bg-accent/10"
                     onMouseDown={() => selectPrediction(prediction)}
                   >
                     {prediction.description}
@@ -155,7 +155,7 @@ export default function LocationPage() {
 
         <button
           type="button"
-          className="mt-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 py-4 font-medium text-white shadow-md transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:from-gray-300 disabled:to-gray-300 disabled:opacity-100 disabled:shadow-none"
+          className="btn-primary mt-2"
           disabled={selectedLocation === null}
           onClick={handleNext}
         >

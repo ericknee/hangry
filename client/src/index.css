@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens as space-separated RGB so Tailwind opacity modifiers work. */
+:root {
+  --canvas: 255 248 242;
+  --surface: 255 255 255;
+  --ink: 31 26 23;
+  --muted: 122 110 102;
+  --accent: 242 84 45;
+  --accent-hover: 217 68 31;
+  --line: 234 223 214;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: 23 19 17;
+    --surface: 34 28 25;
+    --ink: 246 239 233;
+    --muted: 168 156 147;
+    --accent: 255 106 61;
+    --accent-hover: 255 128 90;
+    --line: 58 49 44;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+  }
+}
+
+@layer components {
+  .page {
+    @apply flex min-h-screen items-center justify-center bg-canvas p-6;
+  }
+
+  .btn-primary {
+    @apply w-full rounded-full bg-accent py-4 text-lg font-semibold text-white shadow-md transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-line disabled:text-muted disabled:shadow-none;
+  }
+}
+
 @keyframes toast-in {
   from {
     transform: translateY(-100%);

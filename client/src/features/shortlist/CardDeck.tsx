@@ -145,7 +145,7 @@ function RoundButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-blue-600 shadow-md hover:bg-blue-50"
+      className="flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface text-accent shadow-md hover:border-accent"
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         {children}
@@ -229,7 +229,7 @@ export default function CardDeck({
         <RoundButton label="Previous restaurant" onClick={previous}>
           <path d="M15 5l-7 7 7 7" />
         </RoundButton>
-        <span className="text-sm text-blue-700">
+        <span className="text-sm font-medium text-muted">
           {ids.indexOf(topId) + 1} / {items.length}
         </span>
         <RoundButton label="Next restaurant" onClick={() => requestExit(-1)}>

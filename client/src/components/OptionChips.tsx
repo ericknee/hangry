@@ -19,8 +19,10 @@ export default function OptionChips<T extends string | number>({
             key={option.value}
             type="button"
             aria-pressed={isSelected}
-            className={`rounded-full px-5 py-3 text-base shadow-sm transition-colors ${
-              isSelected ? "bg-blue-500 text-white" : "bg-white/80 text-blue-900 hover:bg-white"
+            className={`min-h-[3rem] rounded-full border px-6 py-3 text-base font-medium shadow-sm transition-colors ${
+              isSelected
+                ? "border-accent bg-accent text-white"
+                : "border-line bg-surface text-ink hover:border-accent"
             }`}
             onClick={() => onToggle(option.value)}
           >

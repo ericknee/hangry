@@ -28,14 +28,14 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200 p-6">
+    <main className="page">
       <div className="flex w-full max-w-md flex-col gap-4">
-        <h1 className="text-center text-2xl font-medium text-blue-950">
-          What are you craving? <span className="font-normal text-blue-300">optional</span>
+        <h1 className="text-center text-2xl font-semibold text-ink">
+          What are you craving? <span className="font-normal text-muted">optional</span>
         </h1>
         <input
           autoFocus
-          className="w-full bg-transparent text-center text-xl text-blue-900 placeholder:text-blue-300 focus:outline-none"
+          className="w-full rounded-2xl border border-line bg-surface px-4 py-4 text-center text-xl text-ink placeholder:text-muted focus:border-accent focus:outline-none"
           placeholder="Sushi, something spicy, comfort food..."
           value={craving}
           onChange={(e) => setCraving(e.target.value)}
@@ -46,7 +46,7 @@ export default function SearchPage() {
         <button
           type="button"
           disabled={submitting}
-          className="mt-2 w-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 py-4 font-medium text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-60"
+          className="btn-primary mt-2"
           onClick={handleNext}
         >
           Next

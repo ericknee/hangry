@@ -16,7 +16,7 @@ const LOAD_ERROR = "Couldn't load your results. Please try again.";
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 via-blue-100 to-blue-200 p-6">
+    <main className="page">
       <div className="flex w-full max-w-md flex-col gap-4">{children}</div>
     </main>
   );
@@ -82,7 +82,7 @@ export default function ShortlistPage() {
   if (restaurants.length === 0) {
     return (
       <Shell>
-        <p className="text-center text-blue-900">No places found.</p>
+        <p className="text-center text-ink">No places found.</p>
       </Shell>
     );
   }
@@ -91,7 +91,7 @@ export default function ShortlistPage() {
 
   return (
     <Shell>
-      <h1 className="text-center text-2xl font-medium text-blue-950">Your shortlist</h1>
+      <h1 className="text-center text-2xl font-semibold text-ink">Your shortlist</h1>
       <CardDeck
         onTopChange={onTopChange}
         items={visible.map((r) => ({ id: r.place_id, content: (
@@ -105,7 +105,7 @@ export default function ShortlistPage() {
       {hasMore && (
         <button
           type="button"
-          className="self-center rounded-full bg-white/80 px-5 py-3 text-sm font-medium text-blue-700 shadow-sm hover:bg-white"
+          className="self-center rounded-full border border-line bg-surface px-6 py-3 text-base font-semibold text-accent shadow-sm hover:border-accent"
           onClick={() => {
             setShowAll(true);
             loadPhotoBatch(restaurants, TOP_COUNT);
