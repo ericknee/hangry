@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import LegalLinks from "./LegalLinks";
 
 interface PageProps {
   children: ReactNode;
@@ -12,7 +13,10 @@ interface PageProps {
 export default function Page({ children, gap = "gap-4", className = "" }: PageProps) {
   return (
     <main className="page">
-      <div className={`flex w-full max-w-md flex-col ${gap} ${className}`}>{children}</div>
+      <div className={`flex w-full max-w-md flex-col ${gap} ${className}`}>
+        {children}
+        <LegalLinks />
+      </div>
     </main>
   );
 }

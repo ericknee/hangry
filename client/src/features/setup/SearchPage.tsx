@@ -9,6 +9,8 @@ import { useToast } from "../../components/useToast";
 import { ROUTES } from "../../routes";
 import { loadPendingLocation } from "../location/pendingLocation";
 
+const MAX_CRAVING_LENGTH = 100; // matches the backend limit on initial_query
+
 export default function SearchPage() {
   const navigate = useNavigate();
   const [craving, setCraving] = useState("");
@@ -40,6 +42,7 @@ export default function SearchPage() {
         autoFocus
         className="text-center"
         placeholder="Sushi, something spicy, comfort food..."
+        maxLength={MAX_CRAVING_LENGTH}
         value={craving}
         onChange={(e) => setCraving(e.target.value)}
         onKeyDown={(e) => {

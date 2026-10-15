@@ -15,7 +15,8 @@ class LocationInput(BaseModel):
 
 class CreateSessionRequest(BaseModel):
     mode: SessionMode
-    initial_query: str
+    # The typed craving. Stored with the session (deleted after 30 days), so it is length-limited.
+    initial_query: str = Field(max_length=100)
     location: LocationInput | None = None
 
 
