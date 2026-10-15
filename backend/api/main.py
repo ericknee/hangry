@@ -7,7 +7,7 @@ from agent.places_client import PlacesClient
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.config import get_settings
+from api.config import Settings, get_settings
 from api.db.database import async_session
 from api.places.router import router as places_router
 from api.sessions.cache import CandidateCache
@@ -29,19 +29,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await app.state.places.aclose()
 
 
-app = FastAPI(title="Hangry API", lifespan=lifespan)
+def create_app(settings: Settings) -> FastAPI:
+    docs_enabled = settings.environment != "prod"
+    app = FastAPI(
+        title="Hangry API",
+        lifespan=lifespan,
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
+        openapi_url="/openapi.json" if docs_enabled else None,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173"],  # Vite dev server
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.include_router(sessions_router)
+    app.include_router(places_router)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    @app.get("/health")
+    async def health() -> dict:
+        return {"status": "ok"}
 
-app.include_router(sessions_router)
-app.include_router(places_router)
+    return app
 
 
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok"}
+app = create_app(get_settings())

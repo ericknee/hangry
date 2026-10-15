@@ -102,7 +102,7 @@ models in its `types.py`.
   through Alembic (`backend/alembic.ini`, migrations in `api/db/migrations/`); see
   `api/db/migrations/README.md`.
 - Settings (`api/config.py`) load the repo-root `.env` by absolute path via `pydantic-settings`;
-  `google_places_api_key` and `database_url` are required. Tests set dummy values in
+  `google_places_api_key` and `database_url` are required. `ENVIRONMENT=prod` turns off `/docs`, `/redoc` and `/openapi.json` (default `dev`); the app is built by `create_app(settings)` in `api/main.py`. Tests set dummy values in
   `backend/tests/api/conftest.py`.
 
 ## Frontend (`client`)

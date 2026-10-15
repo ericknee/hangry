@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,8 @@ class Settings(BaseSettings):
 
     database_url: str
     google_places_api_key: str
+    # "prod" turns off the interactive API docs and the /openapi.json route.
+    environment: Literal["dev", "prod"] = "dev"
     # Session rows older than this are deleted (see api/sessions/retention.py).
     session_retention_days: int = 30
 
