@@ -14,7 +14,7 @@ router = APIRouter(prefix="/places", tags=["places"])
 
 @router.get("/autocomplete", response_model=list[CityPrediction])
 async def autocomplete(
-    input: Annotated[str, Query(min_length=1)],
+    input: Annotated[str, Query(min_length=1, max_length=100)],
     places: Annotated[PlacesClient, Depends(get_places)],
     session_token: Annotated[UUID, Query()],
 ) -> list[CityPrediction]:

@@ -127,6 +127,7 @@ export default function LocationPage() {
           <TextInput
             variant="bare"
             placeholder="Enter your location..."
+            maxLength={100}
             value={locationText}
             onChange={(e) => {
               setLocationText(e.target.value);

@@ -480,6 +480,7 @@
             "name": "input",
             "required": true,
             "schema": {
+              "maxLength": 100,
               "minLength": 1,
               "title": "Input",
               "type": "string"

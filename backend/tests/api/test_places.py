@@ -66,3 +66,12 @@ def test_city_location_accepts_a_real_looking_place_id():
     places = FakePlaces()
     resp = get(f"/places/cities/ChIJN1t_tDeuEmsRUsoyG83frY4?session_token={TOKEN}", places)
     assert resp.status_code == 200
+
+
+def test_autocomplete_input_is_length_capped():
+    places = FakePlaces()
+    ok = get(f"/places/autocomplete?input={'a' * 100}&session_token={TOKEN}", places)
+    too_long = get(f"/places/autocomplete?input={'a' * 101}&session_token={TOKEN}", places)
+    assert ok.status_code == 200
+    assert too_long.status_code == 422
+    assert len(places.tokens) == 1
