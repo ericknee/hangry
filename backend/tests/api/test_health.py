@@ -5,7 +5,7 @@ client = TestClient(app)
 
 
 def test_health():
-    resp = client.get("/health")
+    resp = client.get("/api/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
 
@@ -23,4 +23,4 @@ def test_docs_are_served_in_dev_but_not_in_prod():
     assert dev.get("/openapi.json").status_code == 200
     for path in ("/docs", "/redoc", "/openapi.json"):
         assert prod.get(path).status_code == 404, path
-    assert prod.get("/health").status_code == 200
+    assert prod.get("/api/health").status_code == 200

@@ -24,7 +24,7 @@ def post_session(payload: dict) -> tuple[dict, FakeDb]:
 
     app.dependency_overrides[get_db] = override
     try:
-        resp = TestClient(app).post("/sessions", json=payload)
+        resp = TestClient(app).post("/api/sessions", json=payload)
     finally:
         app.dependency_overrides.clear()
     assert resp.status_code == 200
@@ -57,7 +57,9 @@ def test_initial_query_is_capped_in_length():
 
     app.dependency_overrides[get_db] = override
     try:
-        resp = TestClient(app).post("/sessions", json={"mode": "solo", "initial_query": "x" * 101})
+        resp = TestClient(app).post(
+            "/api/sessions", json={"mode": "solo", "initial_query": "x" * 101}
+        )
     finally:
         app.dependency_overrides.clear()
     assert resp.status_code == 422

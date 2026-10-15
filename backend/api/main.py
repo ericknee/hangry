@@ -1,18 +1,17 @@
-import asyncio
-import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from agent.places_client import PlacesClient
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, FastAPI
 
 from api.config import Settings, get_settings
-from api.db.database import async_session
+from api.frontend import mount_frontend
 from api.places.router import router as places_router
 from api.sessions.cache import CandidateCache
-from api.sessions.retention import run_purge_loop
 from api.sessions.router import router as sessions_router
+
+# Every API route lives under this prefix; the rest of the URL space belongs to the frontend.
+API_PREFIX = "/api"
 
 
 @asynccontextmanager
@@ -21,11 +20,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     app.state.places = PlacesClient(api_key=settings.google_places_api_key)
     app.state.candidates = CandidateCache()
-    purge = asyncio.create_task(run_purge_loop(async_session, days=settings.session_retention_days))
     yield
-    purge.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await purge
     await app.state.places.aclose()
 
 
@@ -38,18 +33,18 @@ def create_app(settings: Settings) -> FastAPI:
         redoc_url="/redoc" if docs_enabled else None,
         openapi_url="/openapi.json" if docs_enabled else None,
     )
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["http://localhost:5173"],  # Vite dev server
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    app.include_router(sessions_router)
-    app.include_router(places_router)
+    api = APIRouter(prefix=API_PREFIX)
+    api.include_router(sessions_router)
+    api.include_router(places_router)
 
-    @app.get("/health")
+    @api.get("/health")
     async def health() -> dict:
         return {"status": "ok"}
+
+    app.include_router(api)
+    # Last, because its catch-all route would otherwise shadow later routes.
+    if settings.static_dir is not None:
+        mount_frontend(app, settings.static_dir, api_prefix=API_PREFIX)
 
     return app
 

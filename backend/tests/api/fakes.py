@@ -55,7 +55,7 @@ def post_search(db: FakeDb, places: FakePlaces, cache: CandidateCache, body: dic
     app.dependency_overrides[get_places] = lambda: places
     app.dependency_overrides[get_candidate_cache] = lambda: cache
     try:
-        return TestClient(app).post("/sessions/s1/search", json=body)
+        return TestClient(app).post("/api/sessions/s1/search", json=body)
     finally:
         app.dependency_overrides.clear()
 
@@ -63,6 +63,6 @@ def post_search(db: FakeDb, places: FakePlaces, cache: CandidateCache, body: dic
 def get_results(cache: CandidateCache):
     app.dependency_overrides[get_candidate_cache] = lambda: cache
     try:
-        return TestClient(app).get("/sessions/s1/results")
+        return TestClient(app).get("/api/sessions/s1/results")
     finally:
         app.dependency_overrides.clear()

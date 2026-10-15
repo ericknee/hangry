@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/health": {
+    "/api/health": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,7 +12,7 @@ export interface paths {
             cookie?: never;
         };
         /** Health */
-        get: operations["health_health_get"];
+        get: operations["health_api_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -21,7 +21,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/places/autocomplete": {
+    "/api/places/autocomplete": {
         parameters: {
             query?: never;
             header?: never;
@@ -29,7 +29,7 @@ export interface paths {
             cookie?: never;
         };
         /** Autocomplete */
-        get: operations["autocomplete_places_autocomplete_get"];
+        get: operations["autocomplete_api_places_autocomplete_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -38,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/places/cities/{place_id}": {
+    "/api/places/cities/{place_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -46,7 +46,7 @@ export interface paths {
             cookie?: never;
         };
         /** City Location */
-        get: operations["city_location_places_cities__place_id__get"];
+        get: operations["city_location_api_places_cities__place_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -55,7 +55,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/sessions": {
+    "/api/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -65,14 +65,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Create Session */
-        post: operations["create_session_sessions_post"];
+        post: operations["create_session_api_sessions_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/sessions/{session_id}/restaurants/{place_id}/photo": {
+    "/api/sessions/{session_id}/restaurants/{place_id}/photo": {
         parameters: {
             query?: never;
             header?: never;
@@ -80,7 +80,7 @@ export interface paths {
             cookie?: never;
         };
         /** Restaurant Photo */
-        get: operations["restaurant_photo_sessions__session_id__restaurants__place_id__photo_get"];
+        get: operations["restaurant_photo_api_sessions__session_id__restaurants__place_id__photo_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -89,7 +89,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/sessions/{session_id}/results": {
+    "/api/sessions/{session_id}/results": {
         parameters: {
             query?: never;
             header?: never;
@@ -97,7 +97,7 @@ export interface paths {
             cookie?: never;
         };
         /** Session Results */
-        get: operations["session_results_sessions__session_id__results_get"];
+        get: operations["session_results_api_sessions__session_id__results_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -106,7 +106,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/sessions/{session_id}/search": {
+    "/api/sessions/{session_id}/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -116,7 +116,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Search Session */
-        post: operations["search_session_sessions__session_id__search_post"];
+        post: operations["search_session_api_sessions__session_id__search_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -284,7 +284,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_get: {
+    health_api_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -306,7 +306,7 @@ export interface operations {
             };
         };
     };
-    autocomplete_places_autocomplete_get: {
+    autocomplete_api_places_autocomplete_get: {
         parameters: {
             query: {
                 input: string;
@@ -338,7 +338,7 @@ export interface operations {
             };
         };
     };
-    city_location_places_cities__place_id__get: {
+    city_location_api_places_cities__place_id__get: {
         parameters: {
             query: {
                 session_token: string;
@@ -371,7 +371,7 @@ export interface operations {
             };
         };
     };
-    create_session_sessions_post: {
+    create_session_api_sessions_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -404,7 +404,7 @@ export interface operations {
             };
         };
     };
-    restaurant_photo_sessions__session_id__restaurants__place_id__photo_get: {
+    restaurant_photo_api_sessions__session_id__restaurants__place_id__photo_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -434,7 +434,7 @@ export interface operations {
             };
         };
     };
-    session_results_sessions__session_id__results_get: {
+    session_results_api_sessions__session_id__results_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -465,7 +465,7 @@ export interface operations {
             };
         };
     };
-    search_session_sessions__session_id__search_post: {
+    search_session_api_sessions__session_id__search_post: {
         parameters: {
             query?: never;
             header?: never;

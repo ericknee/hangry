@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     google_places_api_key: str
     # "prod" turns off the interactive API docs and the /openapi.json route.
     environment: Literal["dev", "prod"] = "dev"
+    # Folder with the built frontend (client/dist). Unset in dev, where Vite serves the pages.
+    static_dir: Path | None = None
     # Session rows older than this are deleted (see api/sessions/retention.py).
     session_retention_days: int = 30
 

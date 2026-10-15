@@ -35,6 +35,14 @@ uv run python -m alembic -c backend/alembic.ini upgrade head   # creates the ses
 cd client && npm install && npm run dev   # frontend on http://localhost:5173
 ```
 
+Container (one image: API + built frontend; the same image runs the purge job with
+`python -m api.sessions.retention`). Pass secrets at run time, never bake `.env` in:
+
+```bash
+docker build -t hangry .
+docker run --rm -p 8080:8080 -e DATABASE_URL=... -e GOOGLE_PLACES_API_KEY=... hangry   # http://localhost:8080
+```
+
 Run the API (separate terminal, repo root):
 
 ```bash
@@ -78,6 +86,11 @@ npm run gen:api   # regenerate the API types after changing backend/api/**/types
   "Places cost" under "Decisions" before changing the mask.
 
 ## API / persistence (`backend/api`)
+
+Every route is mounted under `API_PREFIX` (`/api`, in `api/main.py`). When `STATIC_DIR` is set (the Docker image
+sets it) `api/frontend.py` also serves the built React app from the same origin: real files as-is, any other path
+falls back to `index.html`, unknown `/api/*` paths stay JSON 404s. There is no CORS: dev uses Vite's `/api` proxy,
+prod is same-origin.
 
 Organized by feature: `sessions/` (`router.py` is HTTP only, `service.py` holds the logic and raises
 domain errors the router maps to status codes, plus `types.py` and `cache.py`) and `places/`
@@ -157,7 +170,8 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 - **Storage:** places results (including photo names) are only in the 30-minute in-memory cache; the DB stores IDs, setup
   answers, the typed craving (`initial_query`, max 100 chars, the only free text) and rounded (3-decimal)
   coordinates. Sessions older than `session_retention_days` (30) are
-  deleted hourly by `api/sessions/retention.py`, which runs inside the API process. One photo per restaurant, fetched on demand through the proxy.
+  deleted by `api/sessions/retention.py`, run as a daily job (`python -m api.sessions.retention`; Cloud Run Job
+  + Cloud Scheduler), not inside the API process. One photo per restaurant, fetched on demand through the proxy.
 - **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
   (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
   with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
@@ -175,7 +189,7 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   other countries has to happen at the edge (e.g. Cloudflare), not in this app.
 - **Deploy constraint (Cloud Run):** candidates live in the process's memory, and Google's terms stop us storing them
   elsewhere, so run exactly one always-on instance (`--min-instances=1 --max-instances=1`). Scaling to zero or out
-  loses results (404 on `/results`), and the retention loop assumes one instance.
+  loses results (404 on `/results`), (the purge is a separate job, so it does not depend on this).
 
 ## Not built yet
 

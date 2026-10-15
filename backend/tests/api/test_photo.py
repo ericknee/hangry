@@ -37,7 +37,7 @@ def get_photo(cache: CandidateCache, places: FakePlaces, place_id: str = "p1"):
     app.dependency_overrides[get_candidate_cache] = lambda: cache
     app.dependency_overrides[get_places] = lambda: places
     try:
-        return TestClient(app).get(f"/sessions/s1/restaurants/{place_id}/photo")
+        return TestClient(app).get(f"/api/sessions/s1/restaurants/{place_id}/photo")
     finally:
         app.dependency_overrides.clear()
 
