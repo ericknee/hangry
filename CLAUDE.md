@@ -111,6 +111,10 @@ models in its `types.py`.
   `stream_upstream`. Photo names expire, so only the cached candidate holds them; the browser may cache
   the image for the 30-minute TTL. 404 if no photo, 502 on Places errors. `RestaurantOut.photo` carries
   the author credit Google requires; the card shows it and falls back to the cuisine gradient.
+- Client IP (`client_ip` in `api/ratelimit.py`): the Nth entry from the right of `X-Forwarded-For`, N = `TRUSTED_PROXY_COUNT`
+  (1 = Cloud Run alone, 2 = Cloudflare -> Cloud Run; default 1). The left side is client-written, so it is never trusted;
+  uvicorn runs with `--no-proxy-headers`. Wrong count = shared bucket (too low) or forgeable IP (too high): after deploy,
+  log the raw header once to confirm. Also disable the default `*.run.app` URL, or direct hits skip Cloudflare and the count.
 - Rate limits (`api/ratelimit.py`): in-memory sliding windows keyed by client IP (per minute) and, for photo and search,
   by session id (per 30 minutes). Applied as route dependencies; values are `RATE_LIMIT_*` settings (0 = off), over the
   limit the API returns 429 with `Retry-After`. Counters reset on restart and are exact only because there is one instance.

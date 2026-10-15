@@ -7,13 +7,27 @@ export class ApiError extends Error {
   status: number | null;
   /** The backend's `detail` text, for logs and debugging. Not written for end users. */
   detail: string | null;
+  /** Seconds from the `Retry-After` header (sent with 429), or null if absent. */
+  retryAfterSeconds: number | null;
 
-  constructor(message: string, status: number | null, detail: string | null = null) {
+  constructor(
+    message: string,
+    status: number | null,
+    detail: string | null = null,
+    retryAfterSeconds: number | null = null,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.detail = detail;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/** The per-session limit can lock a user out for up to 30 minutes, so say how long, not "a moment". */
+function waitHint(seconds: number | null): string {
+  if (seconds === null || seconds <= 60) return "Wait a moment and try again.";
+  return `Try again in about ${Math.ceil(seconds / 60)} minutes.`;
 }
 
 /**
@@ -26,7 +40,7 @@ export function userMessage(error: unknown, fallback: string): string {
     return "Can't reach the server. Check your connection and try again.";
   }
   if (error instanceof ApiError && error.status === 429) {
-    return "You're going a bit fast. Wait a moment and try again.";
+    return `You're going a bit fast. ${waitHint(error.retryAfterSeconds)}`;
   }
   return fallback;
 }
@@ -70,7 +84,15 @@ async function attempt<T>(
     } catch {
       // Body wasn't JSON; the status alone has to do.
     }
-    throw new ApiError(`Request failed: ${res.status}`, res.status, detail);
+    // Guard the missing header first: Number(null) is 0, which would read as "retry now".
+    const header = res.headers.get("Retry-After");
+    const retryAfter = header === null ? NaN : Number(header);
+    throw new ApiError(
+      `Request failed: ${res.status}`,
+      res.status,
+      detail,
+      Number.isFinite(retryAfter) ? retryAfter : null,
+    );
   }
   return res.json();
 }

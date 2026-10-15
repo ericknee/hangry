@@ -6,10 +6,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.database import get_db
-from api.deps import get_candidate_cache, get_places
+from api.deps import get_candidate_cache, get_places, require_results, require_session
 from api.media import stream_upstream
 from api.places.types import PlaceId
-from api.ratelimit import rate_limit
+from api.ratelimit import rate_limit, session_rate_limit
 from api.sessions import service
 from api.sessions.cache import CandidateCache
 from api.sessions.types import (
@@ -44,7 +44,9 @@ async def create_session(
     "/{session_id}/search",
     response_model=SearchResponse,
     dependencies=[
-        Depends(rate_limit("search", "rate_limit_search_ip_per_min", "rate_limit_search_session"))
+        Depends(rate_limit("search", "rate_limit_search_ip_per_min")),
+        Depends(require_session),
+        Depends(session_rate_limit("search", "rate_limit_search_session")),
     ],
 )
 async def search_session(
@@ -85,7 +87,9 @@ async def session_results(
     "/{session_id}/restaurants/{place_id}/photo",
     response_class=StreamingResponse,
     dependencies=[
-        Depends(rate_limit("photo", "rate_limit_photo_ip_per_min", "rate_limit_photo_session"))
+        Depends(rate_limit("photo", "rate_limit_photo_ip_per_min")),
+        Depends(require_results),
+        Depends(session_rate_limit("photo", "rate_limit_photo_session")),
     ],
 )
 async def restaurant_photo(

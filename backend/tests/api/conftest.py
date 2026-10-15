@@ -11,6 +11,7 @@ for _name in (
     "SEARCH_IP_PER_MIN",
     "SEARCH_SESSION",
     "SESSION_CREATE_IP_PER_MIN",
-    "PLACES_IP_PER_MIN",
+    "AUTOCOMPLETE_IP_PER_MIN",
+    "CITY_LOOKUP_IP_PER_MIN",
 ):
     os.environ.setdefault(f"RATE_LIMIT_{_name}", "0")

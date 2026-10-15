@@ -10,14 +10,14 @@ from api.errors import PLACES_ERRORS, describe_error
 from api.places.types import CityLocation, CityPrediction, PlaceId
 from api.ratelimit import rate_limit
 
-router = APIRouter(
-    prefix="/places",
-    tags=["places"],
-    dependencies=[Depends(rate_limit("places", "rate_limit_places_ip_per_min"))],
+router = APIRouter(prefix="/places", tags=["places"])
+
+
+@router.get(
+    "/autocomplete",
+    response_model=list[CityPrediction],
+    dependencies=[Depends(rate_limit("autocomplete", "rate_limit_autocomplete_ip_per_min"))],
 )
-
-
-@router.get("/autocomplete", response_model=list[CityPrediction])
 async def autocomplete(
     input: Annotated[str, Query(min_length=1, max_length=100)],
     places: Annotated[PlacesClient, Depends(get_places)],
@@ -32,7 +32,11 @@ async def autocomplete(
     return [CityPrediction(**p) for p in predictions]
 
 
-@router.get("/cities/{place_id}", response_model=CityLocation)
+@router.get(
+    "/cities/{place_id}",
+    response_model=CityLocation,
+    dependencies=[Depends(rate_limit("city_lookup", "rate_limit_city_lookup_ip_per_min"))],
+)
 async def city_location(
     place_id: Annotated[PlaceId, Path()],
     places: Annotated[PlacesClient, Depends(get_places)],
