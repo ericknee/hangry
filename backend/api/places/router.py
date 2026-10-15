@@ -16,12 +16,10 @@ router = APIRouter(prefix="/places", tags=["places"])
 async def autocomplete(
     input: Annotated[str, Query(min_length=1)],
     places: Annotated[PlacesClient, Depends(get_places)],
-    session_token: Annotated[UUID | None, Query()] = None,
+    session_token: Annotated[UUID, Query()],
 ) -> list[CityPrediction]:
     try:
-        predictions = await places.autocomplete_cities(
-            input, session_token=str(session_token) if session_token else None
-        )
+        predictions = await places.autocomplete_cities(input, session_token=str(session_token))
     except PLACES_ERRORS as exc:
         raise HTTPException(
             status_code=502, detail=f"Places autocomplete failed: {describe_error(exc)}"
@@ -33,12 +31,10 @@ async def autocomplete(
 async def city_location(
     place_id: str,
     places: Annotated[PlacesClient, Depends(get_places)],
-    session_token: Annotated[UUID | None, Query()] = None,
+    session_token: Annotated[UUID, Query()],
 ) -> CityLocation:
     try:
-        location = await places.get_place_location(
-            place_id, session_token=str(session_token) if session_token else None
-        )
+        location = await places.get_place_location(place_id, session_token=str(session_token))
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code in (400, 404):
             raise HTTPException(status_code=404, detail="Unknown place id") from exc

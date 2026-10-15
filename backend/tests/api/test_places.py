@@ -40,11 +40,11 @@ def test_city_location_forwards_the_session_token():
     assert places.tokens == [TOKEN]
 
 
-def test_session_token_is_optional():
+def test_session_token_is_required():
     places = FakePlaces()
-    assert get("/places/autocomplete?input=sant", places).status_code == 200
-    assert get("/places/cities/c1", places).status_code == 200
-    assert places.tokens == [None, None]
+    assert get("/places/autocomplete?input=sant", places).status_code == 422
+    assert get("/places/cities/c1", places).status_code == 422
+    assert places.tokens == []
 
 
 def test_malformed_session_token_is_rejected():

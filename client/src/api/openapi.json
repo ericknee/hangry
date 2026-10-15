@@ -487,18 +487,11 @@
           {
             "in": "query",
             "name": "session_token",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Session Token"
+              "format": "uuid",
+              "title": "Session Token",
+              "type": "string"
             }
           }
         ],
@@ -550,18 +543,11 @@
           {
             "in": "query",
             "name": "session_token",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Session Token"
+              "format": "uuid",
+              "title": "Session Token",
+              "type": "string"
             }
           }
         ],

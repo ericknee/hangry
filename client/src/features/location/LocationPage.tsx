@@ -57,6 +57,7 @@ export default function LocationPage() {
   useEffect(() => {
     const id = ++requestId.current;
     const timer = setTimeout(async () => {
+      if (requestId.current !== id) return; // superseded, e.g. by "Current location"
       if (selectedLocation || locationText.trim().length < 2) {
         if (requestId.current === id) setPredictions([]);
         return;
@@ -96,6 +97,7 @@ export default function LocationPage() {
 
   async function selectCurrentLocation() {
     sessionToken.current = crypto.randomUUID(); // abandon the current session
+    requestId.current++; // cancel any pending debounced autocomplete
     setPredictions([]);
     setShowPredictions(false);
     try {

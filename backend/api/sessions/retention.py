@@ -7,7 +7,7 @@ in-memory candidate cache.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -23,7 +23,7 @@ async def purge_expired_sessions(
     db: AsyncSession, *, days: int, now: datetime | None = None
 ) -> int:
     """Delete sessions created more than `days` ago; returns how many were removed."""
-    cutoff = (now or datetime.utcnow()) - timedelta(days=days)  # created_at is naive UTC
+    cutoff = (now or datetime.now(UTC)) - timedelta(days=days)
     result = await db.execute(delete(SessionRecord).where(SessionRecord.created_at < cutoff))
     await db.commit()
     return result.rowcount or 0

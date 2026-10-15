@@ -151,6 +151,9 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   only (dietary wins for breakfast/lunch/dinner; for coffee & dessert and drinks the meal type
   stays and dietary goes in the query text); query = the craving if typed, else the default text for the winning type.
 - **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
+- **Database role (RLS):** `sessions` has row level security on with no policies (migration 0002), so Supabase's
+  REST API can read nothing. The app must connect as the table owner or a `BYPASSRLS` role (Supabase's `postgres.<ref>`
+  pooler user qualifies); a restricted role would see zero rows. Timestamps are timezone-aware UTC (`created_at` is `timestamptz`).
 - **Storage:** places results (including photo names) are only in the 30-minute in-memory cache; the DB stores IDs, setup
   answers, the typed craving (`initial_query`, max 100 chars, the only free text) and rounded (3-decimal)
   coordinates. Sessions older than `session_retention_days` (30) are
