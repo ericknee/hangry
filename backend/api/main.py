@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -6,8 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import get_settings
+from api.db.database import async_session
 from api.places.router import router as places_router
 from api.sessions.cache import CandidateCache
+from api.sessions.retention import run_purge_loop
 from api.sessions.router import router as sessions_router
 
 
@@ -17,7 +21,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     app.state.places = PlacesClient(api_key=settings.google_places_api_key)
     app.state.candidates = CandidateCache()
+    purge = asyncio.create_task(run_purge_loop(async_session, days=settings.session_retention_days))
     yield
+    purge.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await purge
     await app.state.places.aclose()
 
 

@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 
     database_url: str
     google_places_api_key: str
+    # Session rows older than this are deleted (see api/sessions/retention.py).
+    session_retention_days: int = 30
 
 
 @lru_cache

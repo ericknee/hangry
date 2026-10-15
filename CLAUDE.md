@@ -113,6 +113,9 @@ Organized by feature under `client/src/features/`:
 - `setup/` — `SearchPage` (`/search`, optional craving text; Next creates the session) and the four
   one-question pages (`/session/:sessionId/setup/{after,price,dietary,travel}`). Answers are held in
   `sessionStorage` via `setupAnswers.ts`; the last page runs the search behind a loading screen.
+- `legal/` — `TermsPage` (`/terms`) and `PrivacyPage` (`/privacy`), plain static pages. `LegalLinks` (Terms · Privacy)
+  is rendered by `Page` on every screen. **Update the policy whenever data flows change** (what is stored, who
+  receives it, retention).
 - `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
   `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
 
@@ -149,7 +152,9 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   stays and dietary goes in the query text); query = the craving if typed, else the default text for the winning type.
 - **Ranking:** Bayesian average, prior weight 50 reviews, pool-average prior.
 - **Storage:** places results (including photo names) are only in the 30-minute in-memory cache; the DB stores IDs, setup
-  answers and rounded (3-decimal) coordinates. One photo per restaurant, fetched on demand through the proxy.
+  answers, the typed craving (`initial_query`, max 100 chars, the only free text) and rounded (3-decimal)
+  coordinates. Sessions older than `session_retention_days` (30) are
+  deleted hourly by `api/sessions/retention.py`, which runs inside the API process. One photo per restaurant, fetched on demand through the proxy.
 - **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
   (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
   with 5,000 free but has no rating or price; Atmosphere is about $40 per 1,000. Figures come from
@@ -162,6 +167,12 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
   `LOCATION_FIELD_MASK`, which includes `displayName` (Pro). Google bills a session that ends in a Pro-or-higher
   Place Details request at the Enterprise + Atmosphere rate; an Essentials-only mask (`id,formattedAddress,location`)
   would be Place Details Essentials (about $5 per 1,000, 10,000 free). Check the SKU breakdown on the first bill.
+
+- **US only:** the service is for US users. City autocomplete is limited with `includedRegionCodes: ["us"]`; blocking
+  other countries has to happen at the edge (e.g. Cloudflare), not in this app.
+- **Deploy constraint (Cloud Run):** candidates live in the process's memory, and Google's terms stop us storing them
+  elsewhere, so run exactly one always-on instance (`--min-instances=1 --max-instances=1`). Scaling to zero or out
+  loses results (404 on `/results`), and the retention loop assumes one instance.
 
 ## Not built yet
 

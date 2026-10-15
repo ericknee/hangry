@@ -1,6 +1,8 @@
 /** Every URL pattern in one place. Build concrete paths with react-router's `generatePath`. */
 export const ROUTES = {
   home: "/",
+  terms: "/terms",
+  privacy: "/privacy",
   search: "/search",
   setupAfter: "/session/:sessionId/setup/after",
   setupPrice: "/session/:sessionId/setup/price",

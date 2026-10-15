@@ -57,6 +57,7 @@
       "CreateSessionRequest": {
         "properties": {
           "initial_query": {
+            "maxLength": 100,
             "title": "Initial Query",
             "type": "string"
           },

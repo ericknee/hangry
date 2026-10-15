@@ -137,7 +137,12 @@ class PlacesClient:
         `session_token` groups the typing and the closing `get_place_location` call into one billed
         session; without it every request is billed on its own.
         """
-        body: dict = {"input": input_text, "includedPrimaryTypes": ["locality"]}
+        # US only: the service is for US users, so don't offer (or bill for) cities elsewhere.
+        body: dict = {
+            "input": input_text,
+            "includedPrimaryTypes": ["locality"],
+            "includedRegionCodes": ["us"],
+        }
         if session_token:
             body["sessionToken"] = session_token
         resp = await self._http.post("/places:autocomplete", json=body)

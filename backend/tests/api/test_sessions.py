@@ -49,6 +49,21 @@ def test_create_session_records_row_with_rounded_coordinates():
     assert record.state["location"]["lng"] == -122.419
 
 
+def test_initial_query_is_capped_in_length():
+    fake = FakeDb()
+
+    async def override():
+        yield fake
+
+    app.dependency_overrides[get_db] = override
+    try:
+        resp = TestClient(app).post("/sessions", json={"mode": "solo", "initial_query": "x" * 101})
+    finally:
+        app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert fake.added == []
+
+
 def test_create_session_without_location():
     _, db = post_session({"mode": "solo", "initial_query": ""})
     assert db.added[0].state == {"initial_query": "", "location": None}

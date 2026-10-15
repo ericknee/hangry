@@ -68,6 +68,7 @@ async def test_autocomplete_sends_the_session_token_only_when_given():
     await client.autocomplete_cities("sant", session_token=TOKEN)
     await client.autocomplete_cities("sant")
     assert json.loads(requests[0].content)["sessionToken"] == TOKEN
+    assert json.loads(requests[0].content)["includedRegionCodes"] == ["us"]
     assert "sessionToken" not in json.loads(requests[1].content)
     await client.aclose()
 

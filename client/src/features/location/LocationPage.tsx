@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes";
 import { userMessage } from "../../api/http";
 import Button from "../../components/Button";
@@ -169,6 +169,12 @@ export default function LocationPage() {
       <Button className="mt-2" disabled={selectedLocation === null} onClick={handleNext}>
         Next
       </Button>
+      <p className="text-center text-xs text-muted">
+        We send your location to Google Maps to find restaurants.{" "}
+        <Link to={ROUTES.privacy} className="underline">
+          Privacy
+        </Link>
+      </p>
     </Page>
   );
 }
