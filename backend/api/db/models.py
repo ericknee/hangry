@@ -3,7 +3,7 @@ later, behind the embedding stretch goal (see project doc, "APIs & feasibility")
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -18,6 +18,8 @@ class SessionRecord(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     mode: Mapped[str] = mapped_column(String)  # "solo" | "group"
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     state: Mapped[dict] = mapped_column(JSON)  # last-known HangryState snapshot
     final_pick_place_id: Mapped[str | None] = mapped_column(String, nullable=True)

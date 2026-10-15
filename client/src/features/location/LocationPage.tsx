@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../routes";
 import { userMessage } from "../../api/http";
 import Button from "../../components/Button";
+import GoogleMapsAttribution from "../../components/GoogleMapsAttribution";
 import Page from "../../components/Page";
 import TextInput from "../../components/TextInput";
 import { useToast } from "../../components/useToast";
@@ -50,16 +51,19 @@ export default function LocationPage() {
   const [predictions, setPredictions] = useState<CityPrediction[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
   const requestId = useRef(0);
+  // One Places billing session: reused while typing, replaced after every selection.
+  const sessionToken = useRef(crypto.randomUUID());
 
   useEffect(() => {
     const id = ++requestId.current;
     const timer = setTimeout(async () => {
+      if (requestId.current !== id) return; // superseded, e.g. by "Current location"
       if (selectedLocation || locationText.trim().length < 2) {
         if (requestId.current === id) setPredictions([]);
         return;
       }
       try {
-        const results = await autocompleteCities(locationText);
+        const results = await autocompleteCities(locationText, sessionToken.current);
         if (requestId.current === id) setPredictions(results);
       } catch {
         if (requestId.current === id) setPredictions([]);
@@ -72,8 +76,10 @@ export default function LocationPage() {
     setPredictions([]);
     setShowPredictions(false);
     let city;
+    const token = sessionToken.current;
+    sessionToken.current = crypto.randomUUID(); // the lookup below ends this session
     try {
-      city = await getCityLocation(prediction.place_id);
+      city = await getCityLocation(prediction.place_id, token);
     } catch (error) {
       showError(userMessage(error, "Couldn't load that location. Try another."));
       return;
@@ -90,6 +96,8 @@ export default function LocationPage() {
   }
 
   async function selectCurrentLocation() {
+    sessionToken.current = crypto.randomUUID(); // abandon the current session
+    requestId.current++; // cancel any pending debounced autocomplete
     setPredictions([]);
     setShowPredictions(false);
     try {
@@ -151,6 +159,11 @@ export default function LocationPage() {
                 </button>
               </li>
             ))}
+            {predictions.length > 0 && (
+              <li className="flex justify-end px-4 py-2">
+                <GoogleMapsAttribution />
+              </li>
+            )}
           </ul>
         )}
       </div>
@@ -158,6 +171,12 @@ export default function LocationPage() {
       <Button className="mt-2" disabled={selectedLocation === null} onClick={handleNext}>
         Next
       </Button>
+      <p className="text-center text-xs text-muted">
+        We send your location to Google Maps to find restaurants.{" "}
+        <Link to={ROUTES.privacy} className="underline">
+          Privacy
+        </Link>
+      </p>
     </Page>
   );
 }

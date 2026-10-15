@@ -21,7 +21,10 @@ SEARCH_FIELD_MASK = (
     "places.rating,places.userRatingCount,places.priceLevel,places.photos"
 )
 
-# Essentials tier — just enough to resolve a chosen city to coordinates.
+# Pro tier: `displayName` is Pro (`id` is IDs Only; `formattedAddress`, `location` are Essentials).
+# This call ends an autocomplete session, and Google bills a session that ends in a Pro-or-higher
+# Place Details request at the Enterprise + Atmosphere rate, whichever fields are requested.
+# See "Places cost" in CLAUDE.md.
 LOCATION_FIELD_MASK = "id,displayName,formattedAddress,location"
 
 METERS_PER_DEG_LAT = 111_320
@@ -126,12 +129,23 @@ class PlacesClient:
             )
         return upstream
 
-    async def autocomplete_cities(self, input_text: str) -> list[dict]:
-        """City-only autocomplete predictions, Essentials tier (Autocomplete (New))."""
-        resp = await self._http.post(
-            "/places:autocomplete",
-            json={"input": input_text, "includedPrimaryTypes": ["locality"]},
-        )
+    async def autocomplete_cities(
+        self, input_text: str, *, session_token: str | None = None
+    ) -> list[dict]:
+        """City-only autocomplete predictions, Essentials tier (Autocomplete (New)).
+
+        `session_token` groups the typing and the closing `get_place_location` call into one billed
+        session; without it every request is billed on its own.
+        """
+        # US only: the service is for US users, so don't offer (or bill for) cities elsewhere.
+        body: dict = {
+            "input": input_text,
+            "includedPrimaryTypes": ["locality"],
+            "includedRegionCodes": ["us"],
+        }
+        if session_token:
+            body["sessionToken"] = session_token
+        resp = await self._http.post("/places:autocomplete", json=body)
         resp.raise_for_status()
         suggestions = resp.json().get("suggestions", [])
         return [
@@ -143,11 +157,15 @@ class PlacesClient:
             if "placePrediction" in s
         ]
 
-    async def get_place_location(self, place_id: str) -> dict:
-        """Resolve a chosen city's place id to coordinates, Essentials fields only."""
+    async def get_place_location(self, place_id: str, *, session_token: str | None = None) -> dict:
+        """Resolve a chosen city's place id to coordinates (Pro tier, see LOCATION_FIELD_MASK).
+
+        Pass the autocomplete session's token to end that session with this call.
+        """
         resp = await self._http.get(
             f"/places/{place_id}",
             headers={"X-Goog-FieldMask": LOCATION_FIELD_MASK},
+            params={"sessionToken": session_token} if session_token else None,
         )
         resp.raise_for_status()
         data = resp.json()

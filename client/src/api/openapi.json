@@ -57,6 +57,7 @@
       "CreateSessionRequest": {
         "properties": {
           "initial_query": {
+            "maxLength": 100,
             "title": "Initial Query",
             "type": "string"
           },
@@ -482,6 +483,16 @@
               "title": "Input",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "session_token",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Token",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -526,6 +537,16 @@
             "required": true,
             "schema": {
               "title": "Place Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "session_token",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Token",
               "type": "string"
             }
           }

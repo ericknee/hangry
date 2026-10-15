@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 from agent.places_client import PlacesClient
@@ -40,4 +42,43 @@ async def test_open_photo_rejects_and_closes_non_image_responses():
     with pytest.raises(ValueError):
         await client.open_photo("places/p/photos/a", max_width_px=800)
     assert cdn.is_closed
+    await client.aclose()
+
+
+def recording_client(api_json) -> tuple[PlacesClient, list[httpx.Request]]:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json=api_json)
+
+    client = PlacesClient("key")
+    client._http = httpx.AsyncClient(
+        base_url="https://places.test", transport=httpx.MockTransport(handler)
+    )
+    return client, requests
+
+
+TOKEN = "3f1c0f0e-8a52-4f0a-9d56-0f2c7d1f5b11"
+
+
+@pytest.mark.anyio
+async def test_autocomplete_sends_the_session_token_only_when_given():
+    client, requests = recording_client({"suggestions": []})
+    await client.autocomplete_cities("sant", session_token=TOKEN)
+    await client.autocomplete_cities("sant")
+    assert json.loads(requests[0].content)["sessionToken"] == TOKEN
+    assert json.loads(requests[0].content)["includedRegionCodes"] == ["us"]
+    assert "sessionToken" not in json.loads(requests[1].content)
+    await client.aclose()
+
+
+@pytest.mark.anyio
+async def test_place_location_sends_the_session_token_only_when_given():
+    place = {"id": "c1", "location": {"latitude": 1.0, "longitude": 2.0}}
+    client, requests = recording_client(place)
+    await client.get_place_location("c1", session_token=TOKEN)
+    await client.get_place_location("c1")
+    assert requests[0].url.params["sessionToken"] == TOKEN
+    assert "sessionToken" not in requests[1].url.params
     await client.aclose()
