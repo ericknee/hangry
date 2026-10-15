@@ -9,6 +9,7 @@ from api.db.database import get_db
 from api.deps import get_candidate_cache, get_places
 from api.media import stream_upstream
 from api.places.types import PlaceId
+from api.ratelimit import rate_limit
 from api.sessions import service
 from api.sessions.cache import CandidateCache
 from api.sessions.types import (
@@ -22,7 +23,11 @@ from api.sessions.types import (
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-@router.post("", response_model=SessionResponse)
+@router.post(
+    "",
+    response_model=SessionResponse,
+    dependencies=[Depends(rate_limit("session_create", "rate_limit_session_create_ip_per_min"))],
+)
 async def create_session(
     payload: CreateSessionRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -35,7 +40,13 @@ async def create_session(
     )
 
 
-@router.post("/{session_id}/search", response_model=SearchResponse)
+@router.post(
+    "/{session_id}/search",
+    response_model=SearchResponse,
+    dependencies=[
+        Depends(rate_limit("search", "rate_limit_search_ip_per_min", "rate_limit_search_session"))
+    ],
+)
 async def search_session(
     session_id: str,
     payload: SearchRequest,
@@ -70,7 +81,13 @@ async def session_results(
     return ResultsResponse(restaurants=restaurants)
 
 
-@router.get("/{session_id}/restaurants/{place_id}/photo", response_class=StreamingResponse)
+@router.get(
+    "/{session_id}/restaurants/{place_id}/photo",
+    response_class=StreamingResponse,
+    dependencies=[
+        Depends(rate_limit("photo", "rate_limit_photo_ip_per_min", "rate_limit_photo_session"))
+    ],
+)
 async def restaurant_photo(
     session_id: str,
     place_id: PlaceId,

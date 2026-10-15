@@ -111,6 +111,10 @@ models in its `types.py`.
   `stream_upstream`. Photo names expire, so only the cached candidate holds them; the browser may cache
   the image for the 30-minute TTL. 404 if no photo, 502 on Places errors. `RestaurantOut.photo` carries
   the author credit Google requires; the card shows it and falls back to the cuisine gradient.
+- Rate limits (`api/ratelimit.py`): in-memory sliding windows keyed by client IP (per minute) and, for photo and search,
+  by session id (per 30 minutes). Applied as route dependencies; values are `RATE_LIMIT_*` settings (0 = off), over the
+  limit the API returns 429 with `Retry-After`. Counters reset on restart and are exact only because there is one instance.
+  Tests set them to 0 in `backend/tests/api/conftest.py`.
 - DB is Postgres via async SQLAlchemy (`api/db/database.py`, `api/db/models.py`). Schema changes go
   through Alembic (`backend/alembic.ini`, migrations in `api/db/migrations/`); see
   `api/db/migrations/README.md`.

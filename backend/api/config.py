@@ -21,6 +21,16 @@ class Settings(BaseSettings):
     # Session rows older than this are deleted (see api/sessions/retention.py).
     session_retention_days: int = 30
 
+    # Rate limits (see api/ratelimit.py); 0 turns a limit off. "ip" limits are requests per minute
+    # per client IP; "session" limits are requests per session over the 30-minute results lifetime.
+    # Photos and searches are billed Google requests, so they are the tightest.
+    rate_limit_photo_ip_per_min: int = 60
+    rate_limit_photo_session: int = 40
+    rate_limit_search_ip_per_min: int = 5
+    rate_limit_search_session: int = 5
+    rate_limit_session_create_ip_per_min: int = 10
+    rate_limit_places_ip_per_min: int = 60
+
 
 @lru_cache
 def get_settings() -> Settings:

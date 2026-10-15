@@ -18,12 +18,15 @@ export class ApiError extends Error {
 
 /**
  * Text to show the user for a failed call: a connection hint when the server was unreachable,
- * otherwise the caller's own message. Backend details stay out of the UI; they go to the console.
+ * a slow-down hint when rate limited, otherwise the caller's own message. Backend details stay out of the UI; they go to the console.
  */
 export function userMessage(error: unknown, fallback: string): string {
   console.error(error);
   if (error instanceof ApiError && error.status === null) {
     return "Can't reach the server. Check your connection and try again.";
+  }
+  if (error instanceof ApiError && error.status === 429) {
+    return "You're going a bit fast. Wait a moment and try again.";
   }
   return fallback;
 }

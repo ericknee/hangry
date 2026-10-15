@@ -8,8 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from api.deps import get_places
 from api.errors import PLACES_ERRORS, describe_error
 from api.places.types import CityLocation, CityPrediction, PlaceId
+from api.ratelimit import rate_limit
 
-router = APIRouter(prefix="/places", tags=["places"])
+router = APIRouter(
+    prefix="/places",
+    tags=["places"],
+    dependencies=[Depends(rate_limit("places", "rate_limit_places_ip_per_min"))],
+)
 
 
 @router.get("/autocomplete", response_model=list[CityPrediction])
