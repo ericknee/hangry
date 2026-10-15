@@ -48,7 +48,7 @@ Title: short and specific, no "WIP", under about 70 characters. Several changes 
 
 ```markdown
 ## What this does
-- 3-6 bullets: user-visible or system-visible changes, each starting with the thing that changed.
+- 2-5 one-line bullets: user-visible or system-visible changes, each starting with the thing that changed.
 
 ## Decisions and tradeoffs            <- REQUIRED, see below
 ## Design                             <- optional: diagrams, flows, state, cost notes
@@ -62,24 +62,30 @@ Title: short and specific, no "WIP", under about 70 characters. Several changes 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-Style rules taken from the earlier PRs:
-- Plain, concrete sentences. Name files, endpoints, settings and env vars in backticks.
-- Mark breaking changes in bold. Say when `openapi.json` / `types.gen.ts` were regenerated.
-- Use a fenced ASCII diagram in Design when a flow crosses client / API / Google / DB.
-- Use `Deploy steps` whenever the PR needs something done outside the code (migration, secret, Cloud Run
+Keep it short. A reviewer should get the PR in under a minute:
+- **Size target:** a typical PR is about 25 lines. Past about 40, cut. Size follows the change: a one-file fix
+  gets What, Decisions (if any) and Testing only.
+- **One line per bullet.** Say what changed and why, not how the code works; the diff shows the how.
+  No restating file lists, no narrating the diff.
+- **Decisions:** at most 3-4 choices, each as one bullet: choice, driver, cost (add the rejected alternative or
+  reversibility only if it changes the reader's view). Skip obvious choices.
+- **Optional sections only when they earn it:** Design for a flow that crosses client / API / Google / DB (use a
+  small ASCII diagram instead of prose); API changes only for a changed contract; Known gaps only for real
+  risks or unfinished work.
+- **Deploy steps are never cut** when the PR needs something outside the code (migration, secret, Cloud Run
   setting). Missing deploy steps are the most expensive omission.
-- Costs: if a change affects Google Places billing, say which SKU and why (see CLAUDE.md "Places cost").
+- **Testing:** one line per command, merged where possible ("Backend tests (67), ruff, eslint, build").
+- Plain, concrete sentences. Name files, endpoints, settings and env vars in backticks. Mark breaking changes
+  in bold and say when `openapi.json` / `types.gen.ts` were regenerated. If a change affects Google Places
+  billing, name the SKU (see CLAUDE.md "Places cost").
 
 ### Decisions and tradeoffs (required)
 
-For each significant technical choice (usually 2-5), give:
-- **The choice** in bold.
-- **Product driver:** the product or policy constraint behind it. Examples: the Privacy Policy promises 30-day
-  deletion; candidates can't be stored outside memory because of Google's terms; the service is US-only; solo
-  MVP with group sessions planned.
-- **Alternative rejected**, when there was a real one.
-- **Cost:** what the choice makes worse (money, complexity, coupling, a manual setup step).
-- **Reversibility**, when it's cheap to undo.
+For each significant technical choice (3-4 at most), write one bullet:
+**the choice** - *driver:* the product or policy constraint behind it - *cost:* what it makes worse. Add the
+rejected alternative or how reversible it is only when that changes how the reader sees it. Example drivers:
+the Privacy Policy promises 30-day deletion; candidates can't be stored outside memory because of Google's
+terms; the service is US-only; solo MVP with group sessions planned.
 
 Where to find the drivers: CLAUDE.md "Decisions", `docs/`, the conversation, and the PR diff's comments.
 **Don't invent a product reason.** If you can't find the driver for a choice, either leave the choice out of
@@ -101,4 +107,5 @@ EOF
 - Never force-push, and never push to `main`.
 - End the commit message (if you create one) with the attribution line from the session's reminder; the PR
   body ends with the "Generated with Claude Code" line shown above.
-- Reply with the PR URL, one line on what was verified, and anything left unchecked.
+- Reply in three lines or fewer: the PR URL, what was verified, and what is left unchecked. Don't repeat the
+  description back.
