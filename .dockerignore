@@ -1,0 +1,15 @@
+# Secrets and local state must never be baked into the image.
+.env
+.env.*
+!.env.example
+.git
+.claude
+.venv
+node_modules
+client/node_modules
+client/dist
+**/__pycache__
+.pytest_cache
+.ruff_cache
+docs
+backend/tests

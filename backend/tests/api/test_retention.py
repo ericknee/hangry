@@ -33,3 +33,29 @@ async def test_purge_deletes_sessions_older_than_the_retention_period():
     assert statement.is_delete
     # Created before this instant means older than 30 days.
     assert list(statement.compile().params.values()) == [datetime(2026, 10, 15, 12, 0, tzinfo=UTC)]
+
+
+@pytest.mark.anyio
+async def test_main_purges_once_and_closes_the_engine(monkeypatch):
+    from contextlib import asynccontextmanager
+
+    from api.sessions import retention
+
+    db = FakeDb()
+    disposed = []
+
+    @asynccontextmanager
+    async def fake_session():
+        yield db
+
+    class FakeEngine:
+        async def dispose(self) -> None:
+            disposed.append(True)
+
+    monkeypatch.setattr(retention, "async_session", fake_session)
+    monkeypatch.setattr(retention, "engine", FakeEngine())
+
+    await retention.main()
+
+    assert db.commits == 1
+    assert disposed == [True]

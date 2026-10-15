@@ -28,50 +28,50 @@ def get(path: str, places: FakePlaces):
 
 def test_autocomplete_forwards_the_session_token():
     places = FakePlaces()
-    resp = get(f"/places/autocomplete?input=sant&session_token={TOKEN}", places)
+    resp = get(f"/api/places/autocomplete?input=sant&session_token={TOKEN}", places)
     assert resp.status_code == 200
     assert places.tokens == [TOKEN]
 
 
 def test_city_location_forwards_the_session_token():
     places = FakePlaces()
-    resp = get(f"/places/cities/c1?session_token={TOKEN}", places)
+    resp = get(f"/api/places/cities/c1?session_token={TOKEN}", places)
     assert resp.status_code == 200
     assert places.tokens == [TOKEN]
 
 
 def test_session_token_is_required():
     places = FakePlaces()
-    assert get("/places/autocomplete?input=sant", places).status_code == 422
-    assert get("/places/cities/c1", places).status_code == 422
+    assert get("/api/places/autocomplete?input=sant", places).status_code == 422
+    assert get("/api/places/cities/c1", places).status_code == 422
     assert places.tokens == []
 
 
 def test_malformed_session_token_is_rejected():
     places = FakePlaces()
-    assert get("/places/autocomplete?input=sant&session_token=nope", places).status_code == 422
-    assert get("/places/cities/c1?session_token=nope", places).status_code == 422
+    assert get("/api/places/autocomplete?input=sant&session_token=nope", places).status_code == 422
+    assert get("/api/places/cities/c1?session_token=nope", places).status_code == 422
     assert places.tokens == []
 
 
 def test_city_location_rejects_place_ids_that_could_alter_the_google_url():
     places = FakePlaces()
     for bad in ("a%3Fb", "..%2Fx", "a%20b", "x" * 257):
-        resp = get(f"/places/cities/{bad}?session_token={TOKEN}", places)
+        resp = get(f"/api/places/cities/{bad}?session_token={TOKEN}", places)
         assert resp.status_code in (404, 422), bad
     assert places.tokens == []
 
 
 def test_city_location_accepts_a_real_looking_place_id():
     places = FakePlaces()
-    resp = get(f"/places/cities/ChIJN1t_tDeuEmsRUsoyG83frY4?session_token={TOKEN}", places)
+    resp = get(f"/api/places/cities/ChIJN1t_tDeuEmsRUsoyG83frY4?session_token={TOKEN}", places)
     assert resp.status_code == 200
 
 
 def test_autocomplete_input_is_length_capped():
     places = FakePlaces()
-    ok = get(f"/places/autocomplete?input={'a' * 100}&session_token={TOKEN}", places)
-    too_long = get(f"/places/autocomplete?input={'a' * 101}&session_token={TOKEN}", places)
+    ok = get(f"/api/places/autocomplete?input={'a' * 100}&session_token={TOKEN}", places)
+    too_long = get(f"/api/places/autocomplete?input={'a' * 101}&session_token={TOKEN}", places)
     assert ok.status_code == 200
     assert too_long.status_code == 422
     assert len(places.tokens) == 1

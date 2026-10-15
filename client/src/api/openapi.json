@@ -451,16 +451,16 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/health": {
+    "/api/health": {
       "get": {
-        "operationId": "health_health_get",
+        "operationId": "health_api_health_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Health Health Get",
+                  "title": "Response Health Api Health Get",
                   "type": "object"
                 }
               }
@@ -471,9 +471,9 @@
         "summary": "Health"
       }
     },
-    "/places/autocomplete": {
+    "/api/places/autocomplete": {
       "get": {
-        "operationId": "autocomplete_places_autocomplete_get",
+        "operationId": "autocomplete_api_places_autocomplete_get",
         "parameters": [
           {
             "in": "query",
@@ -505,7 +505,7 @@
                   "items": {
                     "$ref": "#/components/schemas/CityPrediction"
                   },
-                  "title": "Response Autocomplete Places Autocomplete Get",
+                  "title": "Response Autocomplete Api Places Autocomplete Get",
                   "type": "array"
                 }
               }
@@ -529,9 +529,9 @@
         ]
       }
     },
-    "/places/cities/{place_id}": {
+    "/api/places/cities/{place_id}": {
       "get": {
-        "operationId": "city_location_places_cities__place_id__get",
+        "operationId": "city_location_api_places_cities__place_id__get",
         "parameters": [
           {
             "in": "path",
@@ -582,9 +582,9 @@
         ]
       }
     },
-    "/sessions": {
+    "/api/sessions": {
       "post": {
-        "operationId": "create_session_sessions_post",
+        "operationId": "create_session_api_sessions_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -623,9 +623,9 @@
         ]
       }
     },
-    "/sessions/{session_id}/restaurants/{place_id}/photo": {
+    "/api/sessions/{session_id}/restaurants/{place_id}/photo": {
       "get": {
-        "operationId": "restaurant_photo_sessions__session_id__restaurants__place_id__photo_get",
+        "operationId": "restaurant_photo_api_sessions__session_id__restaurants__place_id__photo_get",
         "parameters": [
           {
             "in": "path",
@@ -668,9 +668,9 @@
         ]
       }
     },
-    "/sessions/{session_id}/results": {
+    "/api/sessions/{session_id}/results": {
       "get": {
-        "operationId": "session_results_sessions__session_id__results_get",
+        "operationId": "session_results_api_sessions__session_id__results_get",
         "parameters": [
           {
             "in": "path",
@@ -710,9 +710,9 @@
         ]
       }
     },
-    "/sessions/{session_id}/search": {
+    "/api/sessions/{session_id}/search": {
       "post": {
-        "operationId": "search_session_sessions__session_id__search_post",
+        "operationId": "search_session_api_sessions__session_id__search_post",
         "parameters": [
           {
             "in": "path",
