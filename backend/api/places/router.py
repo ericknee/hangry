@@ -3,11 +3,11 @@ from uuid import UUID
 
 import httpx
 from agent.places_client import PlacesClient
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from api.deps import get_places
 from api.errors import PLACES_ERRORS, describe_error
-from api.places.types import CityLocation, CityPrediction
+from api.places.types import CityLocation, CityPrediction, PlaceId
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -29,7 +29,7 @@ async def autocomplete(
 
 @router.get("/cities/{place_id}", response_model=CityLocation)
 async def city_location(
-    place_id: str,
+    place_id: Annotated[PlaceId, Path()],
     places: Annotated[PlacesClient, Depends(get_places)],
     session_token: Annotated[UUID, Query()],
 ) -> CityLocation:

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.db.database import get_db
 from api.deps import get_candidate_cache, get_places
 from api.media import stream_upstream
+from api.places.types import PlaceId
 from api.sessions import service
 from api.sessions.cache import CandidateCache
 from api.sessions.types import (
@@ -72,7 +73,7 @@ async def session_results(
 @router.get("/{session_id}/restaurants/{place_id}/photo", response_class=StreamingResponse)
 async def restaurant_photo(
     session_id: str,
-    place_id: str,
+    place_id: PlaceId,
     places: Annotated[PlacesClient, Depends(get_places)],
     cache: Annotated[CandidateCache, Depends(get_candidate_cache)],
 ) -> StreamingResponse:
