@@ -124,6 +124,7 @@
           "place_id": {
             "anyOf": [
               {
+                "pattern": "^[A-Za-z0-9_-]{1,256}$",
                 "type": "string"
               },
               {
@@ -479,6 +480,7 @@
             "name": "input",
             "required": true,
             "schema": {
+              "maxLength": 100,
               "minLength": 1,
               "title": "Input",
               "type": "string"
@@ -536,6 +538,7 @@
             "name": "place_id",
             "required": true,
             "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,256}$",
               "title": "Place Id",
               "type": "string"
             }
@@ -638,6 +641,7 @@
             "name": "place_id",
             "required": true,
             "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,256}$",
               "title": "Place Id",
               "type": "string"
             }

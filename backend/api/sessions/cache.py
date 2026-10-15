@@ -4,6 +4,8 @@ from collections.abc import Callable
 from agent.types import Candidate
 
 TTL_SECONDS = 30 * 60
+# Search is unauthenticated, so the cache must not grow without bound. Each entry is ~20 candidates.
+MAX_ENTRIES = 500
 
 
 class CandidateCache:
@@ -14,15 +16,22 @@ class CandidateCache:
     """
 
     def __init__(
-        self, ttl_seconds: float = TTL_SECONDS, clock: Callable[[], float] = time.monotonic
+        self,
+        ttl_seconds: float = TTL_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
+        max_entries: int = MAX_ENTRIES,
     ) -> None:
         self._ttl = ttl_seconds
+        self._max_entries = max_entries
         self._clock = clock
         self._items: dict[str, tuple[float, list[Candidate]]] = {}
 
     def set(self, session_id: str, candidates: list[Candidate]) -> None:
         now = self._clock()
         self._items = {k: v for k, v in self._items.items() if v[0] > now}  # drop expired
+        self._items.pop(session_id, None)  # re-insert at the end so insertion order = expiry order
+        while len(self._items) >= self._max_entries:
+            del self._items[next(iter(self._items))]  # evict the entry closest to expiring
         self._items[session_id] = (now + self._ttl, candidates)
 
     def get(self, session_id: str) -> list[Candidate] | None:

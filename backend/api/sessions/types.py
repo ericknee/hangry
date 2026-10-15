@@ -2,12 +2,14 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from api.places.types import PlaceId
+
 SessionMode = Literal["solo", "group"]
 
 
 class LocationInput(BaseModel):
     # Absent for "Current location", which comes from the browser rather than Places.
-    place_id: str | None = None
+    place_id: PlaceId | None = None
     lat: float
     lng: float
     formatted_address: str | None = None
