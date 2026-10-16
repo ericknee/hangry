@@ -65,7 +65,9 @@ export default function LocationPage() {
       try {
         const results = await autocompleteCities(locationText, sessionToken.current);
         if (requestId.current === id) setPredictions(results);
-      } catch {
+      } catch (error) {
+        // No toast on every keystroke, but leave a trace so a failing or limited endpoint is visible.
+        console.warn("City autocomplete failed", error);
         if (requestId.current === id) setPredictions([]);
       }
     }, 250);

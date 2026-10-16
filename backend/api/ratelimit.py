@@ -4,6 +4,7 @@ Counters live in this process, which is correct because the service runs exactly
 (see CLAUDE.md "Deploy constraint"). Limits come from `Settings`; a limit of 0 turns it off.
 """
 
+import logging
 import time
 from collections import OrderedDict, deque
 from collections.abc import Callable
@@ -12,6 +13,8 @@ from dataclasses import dataclass, field
 from fastapi import HTTPException, Request
 
 from api.sessions.cache import TTL_SECONDS
+
+logger = logging.getLogger(__name__)
 
 IP_WINDOW_SECONDS = 60
 # A per-session cap covers the life of the session's results, so it uses the cache lifetime.
@@ -63,6 +66,8 @@ class RateLimiter:
         entry = self._entries.get(key)
         if entry and entry.hits:
             entry.hits.pop()
+            if not entry.hits:
+                del self._entries[key]
 
     def _make_room(self, now: float) -> None:
         # Only the LRU end is inspected: a full scan per new key would make a flood of fake
@@ -70,10 +75,21 @@ class RateLimiter:
         # memory is reclaimed gradually; a live one goes only if the table is full.
         while self._entries:
             key, entry = next(iter(self._entries.items()))
-            expired = entry.hits[-1] + entry.window_s <= now
+            # `refund` can leave a key with no hits, which counts as expired.
+            expired = not entry.hits or entry.hits[-1] + entry.window_s <= now
             if not expired and len(self._entries) < self._max_keys:
                 break
             del self._entries[key]
+
+
+_warned: set[str] = set()
+
+
+def _warn_once(kind: str, message: str, *args: object) -> None:
+    """Log at WARNING (shown by uvicorn's default config), once per kind rather than per request."""
+    if kind not in _warned:
+        _warned.add(kind)
+        logger.warning(message, *args)
 
 
 def client_ip(request: Request) -> str:
@@ -90,7 +106,26 @@ def client_ip(request: Request) -> str:
         return peer
     forwarded = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",")]
     forwarded = [p for p in forwarded if p]
-    return forwarded[-count] if len(forwarded) >= count else peer
+    if len(forwarded) < count:
+        _warn_once(
+            "short",
+            "X-Forwarded-For has %d entries but TRUSTED_PROXY_COUNT is %d; using the peer address "
+            "%s. Behind the proxies this means one shared bucket, so check TRUSTED_PROXY_COUNT.",
+            len(forwarded),
+            count,
+            peer,
+        )
+        return peer
+    _warn_once(
+        "seen",
+        "First request: raw X-Forwarded-For=%r, peer=%s, TRUSTED_PROXY_COUNT=%d -> client %s. "
+        "Compare with your real IP to confirm the count.",
+        request.headers.get("x-forwarded-for", ""),
+        peer,
+        count,
+        forwarded[-count],
+    )
+    return forwarded[-count]
 
 
 def _reject(retry_after: float) -> HTTPException:
@@ -107,7 +142,9 @@ def rate_limit(bucket: str, ip_setting: str):
     `ip_setting` names a field on `Settings`.
     """
 
-    def check(request: Request) -> None:
+    # async so it runs on the event loop, not the threadpool: the limiter's shared dicts are not
+    # thread-safe, and this does no I/O.
+    async def check(request: Request) -> None:
         limiter: RateLimiter = request.app.state.limiter
         retry_after = limiter.hit(
             f"{bucket}:ip:{client_ip(request)}",
@@ -127,7 +164,7 @@ def session_rate_limit(bucket: str, session_setting: str):
     from the URL, so counting an unchecked one would let a caller dodge the cap by inventing ids.
     """
 
-    def check(request: Request, session_id: str) -> None:
+    async def check(request: Request, session_id: str) -> None:
         limiter: RateLimiter = request.app.state.limiter
         retry_after = limiter.hit(
             f"{bucket}:session:{session_id}",

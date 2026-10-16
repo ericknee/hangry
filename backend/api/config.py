@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Photos and searches are billed Google requests, so they are the tightest.
     rate_limit_photo_ip_per_min: int = 60
     rate_limit_photo_session: int = 40
-    rate_limit_search_ip_per_min: int = 5
+    rate_limit_search_ip_per_min: int = 20
     # Counts failed attempts too (422, 502), so it leaves headroom for retries. A repeat search
     # after a success is served from the cache and costs nothing.
     rate_limit_search_session: int = 10

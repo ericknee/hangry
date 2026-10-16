@@ -50,6 +50,40 @@ def test_limiter_reclaims_expired_keys_even_when_not_full():
     assert list(limiter._entries) == ["live", "new"]
 
 
+def test_refund_that_empties_a_key_does_not_break_eviction():
+    limiter = RateLimiter(clock=lambda: 0.0, max_keys=2)
+    limiter.hit("a", 1, 60)
+    limiter.refund("a")
+    limiter.hit("b", 1, 60)
+    limiter.hit("c", 1, 60)  # full: must evict without touching an empty deque
+    assert limiter.hit("c", 1, 60) is not None
+
+
+def test_empty_entry_is_treated_as_expired():
+    limiter = RateLimiter(clock=lambda: 0.0, max_keys=100)
+    limiter.hit("a", 1, 60)
+    limiter._entries["a"].hits.clear()
+    limiter.hit("b", 1, 60)  # would raise IndexError on hits[-1]
+    assert "a" not in limiter._entries
+
+
+def test_client_ip_warns_once_when_forwarded_for_is_shorter_than_proxy_count(caplog):
+    from api import ratelimit
+
+    ratelimit._warned.clear()
+    app = build(trusted_proxy_count=2).app
+
+    @app.get("/_ip")
+    def ip(request: Request) -> str:
+        return client_ip(request)
+
+    client = TestClient(app)
+    with caplog.at_level("WARNING", logger="api.ratelimit"):
+        client.get("/_ip", headers={"X-Forwarded-For": "1.1.1.1"})
+        client.get("/_ip", headers={"X-Forwarded-For": "1.1.1.1"})
+    assert len([r for r in caplog.records if "TRUSTED_PROXY_COUNT" in r.getMessage()]) == 1
+
+
 def test_requests_over_the_ip_limit_get_429_with_retry_after():
     client = build(rate_limit_autocomplete_ip_per_min=3)
     url = f"/api/places/autocomplete?input=sa&session_token={TOKEN}"
