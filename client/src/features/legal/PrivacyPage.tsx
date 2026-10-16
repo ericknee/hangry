@@ -52,7 +52,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Our hosting providers.</strong> Hangry runs on Google Cloud, and our database is
-            kept by our database provider. They handle the data for us.
+            kept by Supabase. They handle the data for us.
           </li>
         </Bullets>
         <p>

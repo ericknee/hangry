@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI
 from api.config import Settings, get_settings
 from api.frontend import mount_frontend
 from api.places.router import router as places_router
+from api.ratelimit import RateLimiter
 from api.sessions.cache import CandidateCache
 from api.sessions.router import router as sessions_router
 
@@ -33,6 +34,8 @@ def create_app(settings: Settings) -> FastAPI:
         redoc_url="/redoc" if docs_enabled else None,
         openapi_url="/openapi.json" if docs_enabled else None,
     )
+    app.state.settings = settings
+    app.state.limiter = RateLimiter()
     api = APIRouter(prefix=API_PREFIX)
     api.include_router(sessions_router)
     api.include_router(places_router)

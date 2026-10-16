@@ -34,5 +34,6 @@ ENV PATH="/app/.venv/bin:$PATH" \
 USER app
 EXPOSE 8080
 # Exactly one worker: candidates live in this process's memory (see CLAUDE.md "Deploy constraint").
-# Cloud Run sets PORT; --proxy-headers makes request.client the real client IP behind its proxy.
-CMD ["sh", "-c", "exec uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --proxy-headers --forwarded-allow-ips='*'"]
+# Cloud Run sets PORT. --no-proxy-headers: uvicorn would trust the client-controlled left side of
+# X-Forwarded-For; api/ratelimit.py reads the header itself (TRUSTED_PROXY_COUNT).
+CMD ["sh", "-c", "exec uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --no-proxy-headers"]
