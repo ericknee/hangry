@@ -37,6 +37,7 @@ async def create_session(
         session_id=session_id,
         mode=payload.mode,
         share_url=f"/join/{session_id}" if payload.mode == "group" else None,
+        participant_id=None,  # TODO(group): the host's id once group sessions are created
     )
 
 

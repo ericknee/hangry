@@ -155,6 +155,8 @@ export interface components {
              * @enum {string}
              */
             mode: "solo" | "group";
+            /** Name */
+            name?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -257,6 +259,8 @@ export interface components {
              * @enum {string}
              */
             mode: "solo" | "group";
+            /** Participant Id */
+            participant_id: string | null;
             /** Session Id */
             session_id: string;
             /** Share Url */

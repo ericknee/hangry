@@ -1,10 +1,12 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from api.places.types import PlaceId
 
 SessionMode = Literal["solo", "group"]
+# Stored per member and shown to the others in the session; blank means "pick one for me".
+DisplayName = Annotated[str, StringConstraints(strip_whitespace=True, max_length=30)]
 
 
 class LocationInput(BaseModel):
@@ -20,12 +22,16 @@ class CreateSessionRequest(BaseModel):
     # The typed craving. Stored with the session (deleted after 30 days), so it is length-limited.
     initial_query: str = Field(max_length=100)
     location: LocationInput | None = None
+    # Group sessions only: the host's display name; blank or absent gets a generated one.
+    name: DisplayName | None = None
 
 
 class SessionResponse(BaseModel):
     session_id: str
     mode: SessionMode
     share_url: str | None
+    # Group sessions only: the host's credential. The browser keeps it and sends it on later calls.
+    participant_id: str | None
 
 
 class SearchRequest(BaseModel):

@@ -78,6 +78,18 @@
             ],
             "title": "Mode",
             "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           }
         },
         "required": [
@@ -379,6 +391,17 @@
             "title": "Mode",
             "type": "string"
           },
+          "participant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participant Id"
+          },
           "session_id": {
             "title": "Session Id",
             "type": "string"
@@ -398,7 +421,8 @@
         "required": [
           "session_id",
           "mode",
-          "share_url"
+          "share_url",
+          "participant_id"
         ],
         "title": "SessionResponse",
         "type": "object"
