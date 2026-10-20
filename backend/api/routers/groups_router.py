@@ -158,12 +158,7 @@ async def update_me(
             db, session_id, member.id, name=payload.name, craving=payload.craving
         )
     hub.notify(session_id)
-    return MeOut(
-        name=updated.name,
-        craving=updated.craving,
-        is_host=updated.is_host,
-        submitted=updated.submitted_at is not None,
-    )
+    return groups_service.to_me(updated)
 
 
 @router.get(
@@ -275,11 +270,11 @@ async def start_session(
     hub: Hub,
 ) -> SearchResponse:
     """Host only. Zero places leaves the session in the lobby so the host can change the setup."""
-    if not member.is_host:
-        raise HTTPException(status_code=403, detail=_ERRORS[NotHost][1])
     try:
         with domain_errors():
-            count = await groups_service.start(db, places, cache, guard, session_id, payload)
+            count = await groups_service.start(
+                db, places, cache, guard, session_id, payload, member.id
+            )
     except SearchFailed as exc:
         raise HTTPException(status_code=502, detail=f"Restaurant search failed: {exc}") from exc
     hub.notify(session_id)

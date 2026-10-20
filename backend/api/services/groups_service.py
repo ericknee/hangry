@@ -6,6 +6,7 @@ retrying on constraint errors. This service owns the transaction: it commits, th
 not.
 """
 
+import asyncio
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
@@ -197,8 +198,9 @@ async def start(
     guard: StartGuard,
     session_id: str,
     payload: SearchRequest,
+    participant_id: str,
 ) -> int:
-    """Run one Places search per distinct craving, merge the places, and open swiping.
+    """Host only. Run one Places search per distinct craving, merge the places, and open swiping.
 
     The phase flips only after every search has succeeded. A search that worked is kept briefly, so
     retrying after a failure pays only for the ones that did not. With no results at all the
@@ -209,6 +211,8 @@ async def start(
     lands before the snapshot or waits for it — it can no longer be silently skipped.
     """
     record = await _lock_lobby(db, session_id)
+    if not (await get_member(db, session_id, participant_id)).is_host:
+        raise NotHost(participant_id)
     location = record.state.get("location")
     if location is None:
         raise SessionHasNoLocation(session_id)
@@ -220,27 +224,31 @@ async def start(
         cravings.setdefault((member.craving or "").lower(), member.craving or "")
     await db.commit()  # release the lobby lock before the (possibly slow) Places searches
 
+    async def _fetch_pool(key: str, craving: str) -> list[Candidate]:
+        pool = cache.get(_partial_key(session_id, key))
+        if pool is not None:
+            return pool
+        params = build_search_params(
+            after=payload.after,
+            dietary=payload.dietary,
+            craving=craving,
+            price_levels=payload.price_levels,
+            mode=payload.mode,
+            minutes=payload.minutes,
+        )
+        try:
+            pool = await retrieve_candidates(
+                places, lat=location["lat"], lng=location["lng"], params=params
+            )
+        except PLACES_ERRORS as exc:
+            raise SearchFailed(describe_error(exc)) from exc
+        cache.set(_partial_key(session_id, key), pool)
+        return pool
+
     try:
-        pools: list[list[Candidate]] = []
-        for key, craving in cravings.items():
-            pool = cache.get(_partial_key(session_id, key))
-            if pool is None:
-                params = build_search_params(
-                    after=payload.after,
-                    dietary=payload.dietary,
-                    craving=craving,
-                    price_levels=payload.price_levels,
-                    mode=payload.mode,
-                    minutes=payload.minutes,
-                )
-                try:
-                    pool = await retrieve_candidates(
-                        places, lat=location["lat"], lng=location["lng"], params=params
-                    )
-                except PLACES_ERRORS as exc:
-                    raise SearchFailed(describe_error(exc)) from exc
-                cache.set(_partial_key(session_id, key), pool)
-            pools.append(pool)
+        # One search per distinct craving, run together: wall time is the slowest search, not
+        # their sum.
+        pools = await asyncio.gather(*(_fetch_pool(k, c) for k, c in cravings.items()))
 
         # Everyone votes on every place, so the deck is the best few of the merged pool.
         merged = rank_candidates(_merge(pools))[:GROUP_DECK_SIZE]
@@ -388,6 +396,15 @@ async def group_result(
     )
 
 
+def to_me(member: ParticipantRecord) -> MeOut:
+    return MeOut(
+        name=member.name,
+        craving=member.craving,
+        is_host=member.is_host,
+        submitted=member.submitted_at is not None,
+    )
+
+
 async def group_status(
     db: AsyncSession, cache: CandidateCache, session_id: str, participant_id: str
 ) -> GroupStatus:
@@ -408,12 +425,7 @@ async def group_status(
             result = None  # the shortlist expired; the client shows the session as over
     return GroupStatus(
         phase=record.phase,  # type: ignore[arg-type]
-        me=MeOut(
-            name=me.name,
-            craving=me.craving,
-            is_host=me.is_host,
-            submitted=me.submitted_at is not None,
-        ),
+        me=to_me(me),
         members=[
             MemberOut(name=m.name, is_host=m.is_host, submitted=m.submitted_at is not None)
             for m in members
