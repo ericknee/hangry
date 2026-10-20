@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getResults, photoUrl } from "../../api/sessions";
+import { getGroupDeck } from "../../api/groups";
+import { photoUrl } from "../../api/sessions";
 import Button from "../../components/Button";
 import Page from "../../components/Page";
 import { ROUTES } from "../../routes";
@@ -35,7 +36,7 @@ function RunnerUp({ tally, name }: { tally: PlaceTally; name: string }) {
 }
 
 /** The winner with who liked it, and the next places. */
-export default function ResultScreen({ sessionId, status }: GroupScreenProps) {
+export default function ResultScreen({ sessionId, participantId, status }: GroupScreenProps) {
   const navigate = useNavigate();
   // Names for the runners-up; the result only carries ids for them. Best effort: without them the
   // rows are left out.
@@ -43,7 +44,7 @@ export default function ResultScreen({ sessionId, status }: GroupScreenProps) {
 
   useEffect(() => {
     let cancelled = false;
-    getResults(sessionId)
+    getGroupDeck(sessionId, participantId)
       .then((list) => {
         if (!cancelled) setPlaceNames(Object.fromEntries(list.map((r) => [r.place_id, r.name])));
       })
@@ -51,7 +52,7 @@ export default function ResultScreen({ sessionId, status }: GroupScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, participantId]);
 
   const { result } = status;
   if (result === null) return <SessionOver message="This session expired." />;

@@ -935,6 +935,65 @@
         ]
       }
     },
+    "/api/sessions/{session_id}/deck": {
+      "get": {
+        "description": "The shortlist members vote on. Unlike the solo results endpoint, this requires a member\ncredential and is rate-limited, since a group's session id is shared with every guest.",
+        "operationId": "group_deck_api_sessions__session_id__deck_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Group Deck",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
     "/api/sessions/{session_id}/end": {
       "post": {
         "description": "Host only: submit for everyone still swiping (no votes) and show the result.",

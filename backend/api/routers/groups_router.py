@@ -40,7 +40,7 @@ from api.errors.sessions_errors import (
     SessionNotFound,
 )
 from api.ratelimit import rate_limit, session_rate_limit
-from api.services import groups_service
+from api.services import groups_service, sessions_service
 from api.types.groups_types import (
     GroupStatus,
     JoinRequest,
@@ -49,7 +49,7 @@ from api.types.groups_types import (
     SubmitVotesRequest,
     UpdateMemberRequest,
 )
-from api.types.sessions_types import SearchRequest, SearchResponse
+from api.types.sessions_types import ResultsResponse, SearchRequest, SearchResponse
 from api.utils.candidate_cache import CandidateCache
 from api.utils.event_hub import CLOSED, EventHub
 from api.utils.start_guard import StartGuard
@@ -179,6 +179,23 @@ async def group_status(session_id: str, member: Member, db: Db, cache: Cache) ->
     """The same snapshot the event stream pushes; the fallback after a reconnect or a refocus."""
     with domain_errors():
         return await groups_service.group_status(db, cache, session_id, member.id)
+
+
+@router.get(
+    "/{session_id}/deck",
+    response_model=ResultsResponse,
+    dependencies=[
+        Depends(rate_limit("status", "rate_limit_status_ip_per_min")),
+        Depends(require_session),
+        Depends(session_rate_limit("status", "rate_limit_status_session")),
+    ],
+)
+async def group_deck(session_id: str, member: Member, cache: Cache) -> ResultsResponse:
+    """The shortlist members vote on. Unlike the solo results endpoint, this requires a member
+    credential and is rate-limited, since a group's session id is shared with every guest."""
+    with domain_errors():
+        restaurants = sessions_service.ranked_restaurants(cache, session_id)
+    return ResultsResponse(restaurants=restaurants)
 
 
 @router.get(

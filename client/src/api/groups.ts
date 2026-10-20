@@ -3,6 +3,8 @@ import type {
   JoinRequest,
   JoinResponse,
   MeOut,
+  Restaurant,
+  ResultsResponse,
   SearchRequest,
   SearchResponse,
   SetupAnswers,
@@ -35,6 +37,17 @@ export function updateMe(
 
 export function getGroupStatus(sessionId: string, participantId: string): Promise<GroupStatus> {
   return apiRequest<GroupStatus>(`${base(sessionId)}/group`, { headers: asMember(participantId) });
+}
+
+/** The shortlist members vote on. Requires a member credential, unlike the solo results endpoint. */
+export async function getGroupDeck(
+  sessionId: string,
+  participantId: string,
+): Promise<Restaurant[]> {
+  const { restaurants } = await apiRequest<ResultsResponse>(`${base(sessionId)}/deck`, {
+    headers: asMember(participantId),
+  });
+  return restaurants;
 }
 
 /** Host only: runs the searches and opens voting. `count` 0 means the lobby stays open. */

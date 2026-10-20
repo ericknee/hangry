@@ -203,25 +203,24 @@ async def start(
     The phase flips only after every search has succeeded. A search that worked is kept briefly, so
     retrying after a failure pays only for the ones that did not. With no results at all the
     session stays in the lobby so the host can change the setup. Returns the number of places.
+
+    The craving snapshot below is taken under the same row lock `join()`/`update_member()` use, and
+    committed immediately (before the slow Places calls), so a craving edit racing the start either
+    lands before the snapshot or waits for it — it can no longer be silently skipped.
     """
-    record = await sessions_repository.get_session(db, session_id)
-    if record is None:
-        raise SessionNotFound(session_id)
-    if record.mode != "group":
-        raise NotAGroupSession(session_id)
-    if record.phase != "lobby":
-        raise NotInLobby(session_id)
+    record = await _lock_lobby(db, session_id)
     location = record.state.get("location")
     if location is None:
         raise SessionHasNoLocation(session_id)
     if not guard.try_acquire(session_id):
         raise StartInProgress(session_id)
 
-    try:
-        cravings: dict[str, str] = {}  # lowercased -> as typed; "" is the default search
-        for member in await groups_repository.list_members(db, session_id):
-            cravings.setdefault((member.craving or "").lower(), member.craving or "")
+    cravings: dict[str, str] = {}  # lowercased -> as typed; "" is the default search
+    for member in await groups_repository.list_members(db, session_id):
+        cravings.setdefault((member.craving or "").lower(), member.craving or "")
+    await db.commit()  # release the lobby lock before the (possibly slow) Places searches
 
+    try:
         pools: list[list[Candidate]] = []
         for key, craving in cravings.items():
             pool = cache.get(_partial_key(session_id, key))

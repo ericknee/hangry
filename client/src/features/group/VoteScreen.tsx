@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { submitVotes } from "../../api/groups";
+import { getGroupDeck, submitVotes } from "../../api/groups";
 import { ApiError, userMessage } from "../../api/http";
-import { getResults, photoUrl } from "../../api/sessions";
+import { photoUrl } from "../../api/sessions";
 import Button from "../../components/Button";
 import LoadingScreen from "../../components/LoadingScreen";
 import Page from "../../components/Page";
@@ -33,7 +33,7 @@ export default function VoteScreen({ sessionId, participantId, apply, refresh }:
 
   useEffect(() => {
     let cancelled = false;
-    getResults(sessionId)
+    getGroupDeck(sessionId, participantId)
       .then((results) => {
         if (cancelled) return;
         setRestaurants(results);
@@ -47,7 +47,7 @@ export default function VoteScreen({ sessionId, participantId, apply, refresh }:
     return () => {
       cancelled = true;
     };
-  }, [sessionId, showError, loadPhotoBatch]);
+  }, [sessionId, participantId, showError, loadPhotoBatch]);
 
   if (expired) return <SessionOver message="This session expired. Start a new one." />;
   if (restaurants === null) return <LoadingScreen message="Loading the places..." />;
