@@ -68,11 +68,11 @@
   }
 
   .btn-secondary {
-    @apply rounded-full border border-line bg-surface px-6 py-3 text-base font-semibold text-accent shadow-sm transition-colors hover:border-accent;
+    @apply rounded-full border border-line bg-surface px-6 py-3 text-base font-semibold text-accent shadow-sm transition-colors enabled:hover:border-accent disabled:cursor-not-allowed disabled:border-muted/40 disabled:bg-line disabled:text-ink/60 disabled:shadow-none;
   }
 
   .btn-icon {
-    @apply flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface text-accent shadow-md hover:border-accent;
+    @apply flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface text-accent shadow-md enabled:hover:border-accent disabled:cursor-not-allowed disabled:border-muted/40 disabled:bg-line disabled:text-ink/60 disabled:shadow-none;
   }
 
   .chip {

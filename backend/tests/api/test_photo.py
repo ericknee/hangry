@@ -2,7 +2,7 @@ import httpx
 from agent.types import Candidate
 from api.deps import get_candidate_cache, get_places
 from api.main import app
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fastapi.testclient import TestClient
 
 
@@ -43,7 +43,7 @@ def get_photo(cache: CandidateCache, places: FakePlaces, place_id: str = "p1"):
 
 
 def cache_with(*candidates: Candidate) -> CandidateCache:
-    cache = CandidateCache()
+    cache = CandidateCache(clock=lambda: 0.0)  # frozen, so max-age is exactly the TTL
     cache.set("s1", list(candidates))
     return cache
 

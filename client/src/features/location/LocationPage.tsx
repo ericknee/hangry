@@ -112,9 +112,9 @@ export default function LocationPage() {
     }
   }
 
-  function handleNext() {
+  function handleNext(path: string = ROUTES.search) {
     savePendingLocation(selectedLocation);
-    navigate(ROUTES.search);
+    navigate(path);
   }
 
   return (
@@ -171,8 +171,16 @@ export default function LocationPage() {
         )}
       </div>
 
-      <Button className="mt-2" disabled={selectedLocation === null} onClick={handleNext}>
+      <Button className="mt-2" disabled={selectedLocation === null} onClick={() => handleNext()}>
         Next
+      </Button>
+      <Button
+        variant="secondary"
+        className="self-center"
+        disabled={selectedLocation === null}
+        onClick={() => handleNext(`${ROUTES.search}?mode=group`)}
+      >
+        Plan with friends
       </Button>
       <p className="text-center text-xs text-muted">
         We send your location to Google Maps to find restaurants.{" "}

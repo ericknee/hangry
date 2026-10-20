@@ -1,6 +1,6 @@
 import httpx
 import pytest
-from api.media import _relay_body
+from api.utils.media import _relay_body
 
 
 def upstream() -> httpx.Response:

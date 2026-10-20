@@ -36,7 +36,7 @@ cd client && npm install && npm run dev   # frontend on http://localhost:5173
 ```
 
 Container (one image: API + built frontend; the same image runs the purge job with
-`python -m api.sessions.retention`). Pass secrets at run time, never bake `.env` in:
+`python -m api.jobs.retention`). Pass secrets at run time, never bake `.env` in:
 
 ```bash
 docker build -t hangry .
@@ -64,7 +64,7 @@ Frontend (run from `client/`):
 npm run dev       # Vite dev server
 npm run build     # tsc -b && vite build
 npm run lint      # eslint
-npm run gen:api   # regenerate the API types after changing backend/api/**/types.py
+npm run gen:api   # regenerate the API types after changing backend/api/types/
 ```
 
 ## Search pipeline (`backend/agent`)
@@ -92,25 +92,46 @@ sets it) `api/frontend.py` also serves the built React app from the same origin:
 falls back to `index.html`, unknown `/api/*` paths stay JSON 404s. There is no CORS: dev uses Vite's `/api` proxy,
 prod is same-origin.
 
-Organized by feature: `sessions/` (`router.py` is HTTP only, `service.py` holds the logic and raises
-domain errors the router maps to status codes, plus `types.py` and `cache.py`) and `places/`
-(city autocomplete and lookup). `config.py` holds settings, `deps.py` the shared dependency getters,
-`db/` the models, connection and migrations. Each feature's request/response types are Pydantic
-models in its `types.py`.
+Organized by layer, one file per feature in each folder (`<feature>_<layer>.py`, features: `sessions`,
+`places`, `groups`):
+- `routers/` — HTTP only: parse the request, run dependencies, map domain errors to status codes.
+- `services/` — the rules and orchestration. Raise domain errors and own the transaction (they commit).
+- `repositories/` — database queries and writes only: no rules, no commits. `groups_repository.lock_session`
+  takes the row lock that `groups_service` relies on so concurrent joins/starts run one at a time.
+- `types/` — the request/response models (Pydantic).
+- `errors/` — domain exceptions (`sessions_errors.py`, `groups_errors.py`) and the Places client error
+  tuple (`places_errors.py`).
+- `utils/` — `candidate_cache.py` (the in-memory results cache), `group_names.py`, `media.py`.
+- `jobs/` — one-shot jobs run outside the API process (`retention.py`).
+- `config.py` holds settings, `deps.py` the shared dependency getters, `ratelimit.py` the limiters,
+  `db/` the models, connection and migrations.
+
+Imports go one way: router -> service -> repository -> models; errors, types and utils are shared.
 
 - `POST /sessions` inserts a `SessionRecord` (initial query + location, coordinates rounded to 3
   decimals, ~110 m). It does not search.
 - `POST /sessions/{id}/search` takes the setup answers, runs the one Places search, keeps the
-  candidates in a 30-minute in-memory cache (`sessions/cache.py`; Google's terms limit stored
+  candidates in a 30-minute in-memory cache (`utils/candidate_cache.py`; Google's terms limit stored
   Places content, so they are never written to the DB) and records the setup answers on the row.
   Places errors return 502.
 - `GET /sessions/{id}/results` returns the cached candidates ranked, trimmed to user-facing fields;
   404 once the cache entry has expired (including after any server restart).
 - `GET /sessions/{id}/restaurants/{place_id}/photo` streams one 800px photo via `PlacesClient.open_photo`
-  (`skipHttpRedirect`, then the CDN `photoUri` without the API key) using `api/media.py`'s
+  (`skipHttpRedirect`, then the CDN `photoUri` without the API key) using `api/utils/media.py`'s
   `stream_upstream`. Photo names expire, so only the cached candidate holds them; the browser may cache
   the image for the 30-minute TTL. 404 if no photo, 502 on Places errors. `RestaurantOut.photo` carries
   the author credit Google requires; the card shows it and falls back to the cuisine gradient.
+- Group sessions (`routers/groups_router.py`, `services/groups_service.py`): `POST /sessions` with `mode: "group"` creates
+  the session in the `lobby` phase plus its host member and returns `participant_id`. The participant id is the
+  credential: REST calls send it as `X-Participant-Id`; `GET /sessions/{id}/events` (SSE) takes it as the
+  `participant_id` query param, so it appears in access logs. Endpoints under `/sessions/{id}`: `join`, `PATCH me`
+  (lobby only), `GET group` (the status snapshot, also the resync after an SSE reconnect), `events`, `start`
+  (host; one Places search per distinct craving, merged, phase flips to `swiping` only if all succeed; a retry
+  reuses the searches that worked; zero places leaves the lobby), `votes` (one submit covering the whole
+  deck; the last submit decides the winner), `end` (host; unsubmitted members get 0 votes). Winner = highest sum
+  of vote values, ties by search rank. Votes: positive like, negative dislike, 0 only written by the server.
+  Max 8 members. The SSE stream, the start guard and the in-memory cache all rely on the single instance, and a restart
+  loses the shortlist for everyone (the group has to start over). Photo URLs are gated by session id only (`<img>` cannot send the header).
 - Client IP (`client_ip` in `api/ratelimit.py`): the Nth entry from the right of `X-Forwarded-For`, N = `TRUSTED_PROXY_COUNT`
   (1 = Cloud Run alone, 2 = Cloudflare -> Cloud Run; default 1). The left side is client-written, so it is never trusted;
   uvicorn runs with `--no-proxy-headers`. Wrong count = shared bucket (too low) or forgeable IP (too high): after deploy,
@@ -138,7 +159,16 @@ Organized by feature under `client/src/features/`:
   is rendered by `Page` on every screen. **Update the policy whenever data flows change** (what is stored, who
   receives it, retention).
 - `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
-  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
+  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest. `usePhotoBatches` decides which cards may
+  load their (billed) photo. `CardDeck` has an optional vote mode (`onVote`): swipe down = like, up = dislike, plus
+  buttons; left/right still only browse. Solo does not use it.
+- `group/` — group sessions. The host starts from "Plan with friends" on the location page (`/search?mode=group`),
+  answers the setup questions as usual (the last page goes to the lobby instead of searching), then taps Start in
+  the lobby. Guests open `/join/:sessionId` (optional name and craving). Everyone lands on `GroupSessionPage`
+  (`/session/:sessionId/group`), which shows `LobbyScreen`, `VoteScreen`, `WaitingScreen` or `ResultScreen` from the
+  server status. `useGroupStatus` keeps the status current (SSE stream plus a refetch when the tab is visible again).
+  `groupStorage.ts` keeps the member id and the unsent vote draft in **localStorage** (a stored id also marks the
+  session as a group one for the setup pages). Unlike solo, the setup answers are only sent at Start.
 
 `components/` holds only shared UI (`OptionChips`, `LoadingScreen`, `Toast`). Errors are shown as a
 top-of-screen toast: call `useToast().showError(userMessage(error, "friendly fallback"))` (`userMessage`
@@ -151,7 +181,7 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 
 - **Naming:** "schema" is reserved for the database. Type definitions live in `types.py` (backend)
   and `types.ts` (client); table definitions are in `backend/api/db/models.py` with Alembic migrations.
-- **Backend:** `backend/api/sessions/types.py` and `backend/api/places/types.py` hold the API's
+- **Backend:** `backend/api/types/` (`sessions_types.py`, `places_types.py`, `groups_types.py`) hold the API's
   request/response models (Pydantic); `backend/agent/types.py` holds the pipeline's types.
 - **Client:** `client/src/types.ts` is the one place to import types from. The API types in it are
   **generated** from the backend, so don't hand-write them; it also holds the client-only types
@@ -178,7 +208,7 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 - **Storage:** places results (including photo names) are only in the 30-minute in-memory cache; the DB stores IDs, setup
   answers, the typed craving (`initial_query`, max 100 chars, the only free text) and rounded (3-decimal)
   coordinates. Sessions older than `session_retention_days` (30) are
-  deleted by `api/sessions/retention.py`, run as a daily job (`python -m api.sessions.retention`; Cloud Run Job
+  deleted by `api/jobs/retention.py`, run as a daily job (`python -m api.jobs.retention`; Cloud Run Job
   + Cloud Scheduler), not inside the API process. One photo per restaurant, fetched on demand through the proxy.
 - **Places cost:** Text Search is billed at the highest tier of any requested field. Enterprise
   (rating, price) is about $35 per 1,000 searches with 1,000 free a month; Pro is about $32 per 1,000
@@ -201,7 +231,7 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 
 ## Not built yet
 
-- Group sessions: invites, the join page (the API returns a `share_url` for `mode: "group"` that
-  nothing serves), host-location search.
+- Group sessions: no handling of a host who abandons the lobby, no live "x of y" count beyond the member badges, and
+  nothing is stored client-side to resume a host's unfinished setup in a different tab.
 - The cuisine veto question (selection logic exists in `veto/questions.py`, no endpoint or page).
 - Session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.

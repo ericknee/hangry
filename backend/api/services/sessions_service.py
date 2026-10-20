@@ -11,40 +11,25 @@ from agent.types import Candidate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models import SessionRecord
-from api.errors import PLACES_ERRORS, describe_error
-from api.sessions.cache import CandidateCache
-from api.sessions.types import CreateSessionRequest, PhotoOut, RestaurantOut, SearchRequest
+from api.errors.places_errors import PLACES_ERRORS, describe_error
+from api.errors.sessions_errors import (
+    PhotoFetchFailed,
+    PhotoNotFound,
+    ResultsNotFound,
+    SearchFailed,
+    SessionHasNoLocation,
+    SessionNotFound,
+)
+from api.repositories import sessions_repository
+from api.types.sessions_types import CreateSessionRequest, PhotoOut, RestaurantOut, SearchRequest
+from api.utils.candidate_cache import CandidateCache
 
 # 3 decimals is roughly 110 m: coarse enough to hide the exact spot, fine enough
 # that the search (which reads these stored coordinates) is off by <~80 m.
 COORD_DECIMALS = 3
 
 
-class SessionNotFound(Exception):
-    pass
-
-
-class SessionHasNoLocation(Exception):
-    pass
-
-
-class SearchFailed(Exception):
-    """The Places search errored out (network failure, bad key, quota)."""
-
-
-class ResultsNotFound(Exception):
-    """No cached results for the session: never searched, expired, or the server restarted."""
-
-
-class PhotoNotFound(Exception):
-    """The session's results, the place, or the place's photo is not available."""
-
-
-class PhotoFetchFailed(Exception):
-    """Fetching the image from Google failed (network, bad key, quota, expired name)."""
-
-
-def _initial_state(payload: CreateSessionRequest) -> dict:
+def initial_state(payload: CreateSessionRequest) -> dict:
     location = payload.location.model_dump() if payload.location else None
     if location:
         location["lat"] = round(location["lat"], COORD_DECIMALS)
@@ -56,7 +41,9 @@ async def create_session(db: AsyncSession, payload: CreateSessionRequest) -> str
     """Record a new session and return its id. It does not search: the search needs the setup
     answers that come later, so `run_search` does it."""
     session_id = str(uuid.uuid4())
-    db.add(SessionRecord(id=session_id, mode=payload.mode, state=_initial_state(payload)))
+    sessions_repository.add_session(
+        db, SessionRecord(id=session_id, mode=payload.mode, state=initial_state(payload))
+    )
     await db.commit()
     return session_id
 
@@ -69,7 +56,7 @@ async def run_search(
     payload: SearchRequest,
 ) -> int:
     """Run the one Places search for a session, cache the candidates, record the setup answers."""
-    record = await db.get(SessionRecord, session_id)
+    record = await sessions_repository.get_session(db, session_id)
     if record is None:
         raise SessionNotFound(session_id)
     location = record.state.get("location")
@@ -97,8 +84,7 @@ async def run_search(
         raise SearchFailed(describe_error(exc)) from exc
 
     cache.set(session_id, candidates)
-    # Reassigned (not mutated) so SQLAlchemy sees the JSON column change.
-    record.state = {**record.state, "setup": payload.model_dump()}
+    sessions_repository.set_setup(record, payload.model_dump())
     await db.commit()
     return len(candidates)
 

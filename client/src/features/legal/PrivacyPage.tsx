@@ -2,7 +2,7 @@ import LegalPage, { Bullets, Contact, ExtLink, Section } from "./LegalPage";
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" effective="October 14, 2026">
+    <LegalPage title="Privacy Policy" effective="October 19, 2026">
       <p className="text-ink">
         Hangry helps you pick a restaurant. It is run by an individual in California and is meant for
         people in the United States. This page explains what it collects and what happens to it.
@@ -27,13 +27,22 @@ export default function PrivacyPage() {
             information into it.
           </li>
           <li>
+            <strong>Group sessions.</strong> If you plan with friends, each person can enter a display
+            name (any name you like, or we make one up) and a craving. We store them, along with
+            whether you have finished voting and your like or dislike for each restaurant, with the
+            session ID. Everyone in the same group sees the display names, who has finished, and at
+            the end how each person voted on the top places. Anyone with the invite link can join
+            until the host starts. Each craving is sent to Google as part of the search.
+          </li>
+          <li>
             <strong>Technical logs.</strong> Our hosting provider&apos;s logs record your IP address,
-            the time, and the address requested. That address can include the city text you typed.
+            the time, and the address requested. That address can include the city text you typed
+            and, in a group session, a random member ID.
           </li>
         </Bullets>
         <p>
-          There are no accounts, no cookies, no analytics and no ads. We do not ask for your name or
-          email.
+          There are no accounts, no cookies, no analytics and no ads. We do not ask for your email,
+          and a display name is only for group sessions and is optional.
         </p>
       </Section>
 
@@ -64,14 +73,20 @@ export default function PrivacyPage() {
       <Section title="How long we keep it">
         <Bullets>
           <li>
-            Sessions (rounded location, answers and the craving you typed) are deleted automatically
-            after 30 days.
+            Sessions (rounded location, answers, the craving you typed and, for group sessions, the
+            display names, cravings and votes) are deleted automatically after 30 days.
           </li>
           <li>Restaurant results are held in server memory for up to 30 minutes.</li>
           <li>Hosting logs are kept for up to 30 days.</li>
           <li>
             Your browser keeps your location choice and answers in session storage until you close
             the tab. This is not a cookie and is not sent anywhere on its own.
+          </li>
+          <li>
+            In a group session your browser also keeps a random member ID, and your votes until you
+            submit them, in local storage so a refresh does not lose your place. It stays until you
+            clear your browser data. Anyone who has that ID can act as you in that session, so do not
+            share it.
           </li>
         </Bullets>
       </Section>

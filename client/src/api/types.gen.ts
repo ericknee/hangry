@@ -72,6 +72,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sessions/{session_id}/deck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Group Deck
+         * @description The shortlist members vote on. Unlike the solo results endpoint, this requires a member
+         *     credential and is rate-limited, since a group's session id is shared with every guest.
+         */
+        get: operations["group_deck_api_sessions__session_id__deck_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End Session
+         * @description Host only: submit for everyone still swiping (no votes) and show the result.
+         */
+        post: operations["end_session_api_sessions__session_id__end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Group Events */
+        get: operations["group_events_api_sessions__session_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Group Status
+         * @description The same snapshot the event stream pushes; the fallback after a reconnect or a refocus.
+         */
+        get: operations["group_status_api_sessions__session_id__group_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Join Session */
+        post: operations["join_session_api_sessions__session_id__join_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Me */
+        patch: operations["update_me_api_sessions__session_id__me_patch"];
+        trace?: never;
+    };
     "/api/sessions/{session_id}/restaurants/{place_id}/photo": {
         parameters: {
             query?: never;
@@ -123,6 +235,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sessions/{session_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Session
+         * @description Host only. Zero places leaves the session in the lobby so the host can change the setup.
+         */
+        post: operations["start_session_api_sessions__session_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sessions/{session_id}/votes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Votes */
+        post: operations["submit_votes_api_sessions__session_id__votes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -155,11 +304,51 @@ export interface components {
              * @enum {string}
              */
             mode: "solo" | "group";
+            /** Name */
+            name?: string | null;
+        };
+        /** GroupResult */
+        GroupResult: {
+            /** No Likes */
+            no_likes: boolean;
+            /** Tallies */
+            tallies: components["schemas"]["PlaceTally"][];
+            winner: components["schemas"]["RestaurantOut"];
+        };
+        /**
+         * GroupStatus
+         * @description The whole group state for one member. `GET .../group` returns it and the SSE stream pushes
+         *     it on every change, so the client handles both the same way.
+         */
+        GroupStatus: {
+            me: components["schemas"]["MeOut"];
+            /** Members */
+            members: components["schemas"]["MemberOut"][];
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "lobby" | "swiping" | "done";
+            result: components["schemas"]["GroupResult"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** JoinRequest */
+        JoinRequest: {
+            /** Craving */
+            craving?: string | null;
+            /** Name */
+            name?: string | null;
+        };
+        /** JoinResponse */
+        JoinResponse: {
+            /** Name */
+            name: string;
+            /** Participant Id */
+            participant_id: string;
         };
         /** LocationInput */
         LocationInput: {
@@ -172,6 +361,29 @@ export interface components {
             /** Place Id */
             place_id?: string | null;
         };
+        /** MeOut */
+        MeOut: {
+            /** Craving */
+            craving: string | null;
+            /** Is Host */
+            is_host: boolean;
+            /** Name */
+            name: string;
+            /** Submitted */
+            submitted: boolean;
+        };
+        /**
+         * MemberOut
+         * @description What other members see about a member. No id, no craving.
+         */
+        MemberOut: {
+            /** Is Host */
+            is_host: boolean;
+            /** Name */
+            name: string;
+            /** Submitted */
+            submitted: boolean;
+        };
         /**
          * PhotoOut
          * @description Credit Google requires wherever the photo is shown. The image itself is served at
@@ -182,6 +394,21 @@ export interface components {
             author_name: string | null;
             /** Author Uri */
             author_uri: string | null;
+        };
+        /** PlaceTally */
+        PlaceTally: {
+            /** Disliked By */
+            disliked_by: string[];
+            /** Dislikes */
+            dislikes: number;
+            /** Liked By */
+            liked_by: string[];
+            /** Likes */
+            likes: number;
+            /** Place Id */
+            place_id: string;
+            /** Score */
+            score: number;
         };
         /**
          * RestaurantOut
@@ -257,10 +484,30 @@ export interface components {
              * @enum {string}
              */
             mode: "solo" | "group";
+            /** Participant Id */
+            participant_id: string | null;
             /** Session Id */
             session_id: string;
             /** Share Url */
             share_url: string | null;
+        };
+        /**
+         * SubmitVotesRequest
+         * @description One vote for every place in the member's deck; the service rejects an incomplete deck.
+         */
+        SubmitVotesRequest: {
+            /** Votes */
+            votes: components["schemas"]["VoteIn"][];
+        };
+        /**
+         * UpdateMemberRequest
+         * @description Lobby edits. Rejected with 409 once the host has started.
+         */
+        UpdateMemberRequest: {
+            /** Craving */
+            craving?: string | null;
+            /** Name */
+            name?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -274,6 +521,13 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VoteIn */
+        VoteIn: {
+            /** Place Id */
+            place_id: string;
+            /** Value */
+            value: number;
         };
     };
     responses: never;
@@ -404,6 +658,208 @@ export interface operations {
             };
         };
     };
+    group_deck_api_sessions__session_id__deck_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_session_api_sessions__session_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    group_events_api_sessions__session_id__events_get: {
+        parameters: {
+            query: {
+                participant_id: string;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    group_status_api_sessions__session_id__group_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    join_session_api_sessions__session_id__join_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JoinRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_me_api_sessions__session_id__me_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     restaurant_photo_api_sessions__session_id__restaurants__place_id__photo_get: {
         parameters: {
             query?: never;
@@ -487,6 +943,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_session_api_sessions__session_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_votes_api_sessions__session_id__votes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-participant-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitVotesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupStatus"];
                 };
             };
             /** @description Validation Error */

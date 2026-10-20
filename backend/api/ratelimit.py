@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException, Request
 
-from api.sessions.cache import TTL_SECONDS
+from api.utils.candidate_cache import TTL_SECONDS
 
 logger = logging.getLogger(__name__)
 

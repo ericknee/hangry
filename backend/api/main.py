@@ -5,11 +5,15 @@ from agent.places_client import PlacesClient
 from fastapi import APIRouter, FastAPI
 
 from api.config import Settings, get_settings
+from api.db.database import async_session
 from api.frontend import mount_frontend
-from api.places.router import router as places_router
 from api.ratelimit import RateLimiter
-from api.sessions.cache import CandidateCache
-from api.sessions.router import router as sessions_router
+from api.routers.groups_router import router as groups_router
+from api.routers.places_router import router as places_router
+from api.routers.sessions_router import router as sessions_router
+from api.utils.candidate_cache import CandidateCache
+from api.utils.event_hub import EventHub
+from api.utils.start_guard import StartGuard
 
 # Every API route lives under this prefix; the rest of the URL space belongs to the frontend.
 API_PREFIX = "/api"
@@ -21,6 +25,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     app.state.places = PlacesClient(api_key=settings.google_places_api_key)
     app.state.candidates = CandidateCache()
+    app.state.events = EventHub()
+    app.state.start_guard = StartGuard()
+    app.state.session_factory = async_session
     yield
     await app.state.places.aclose()
 
@@ -38,6 +45,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.limiter = RateLimiter()
     api = APIRouter(prefix=API_PREFIX)
     api.include_router(sessions_router)
+    api.include_router(groups_router)
     api.include_router(places_router)
 
     @api.get("/health")

@@ -7,18 +7,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.database import get_db
 from api.deps import get_candidate_cache, get_places, require_results, require_session
-from api.media import stream_upstream
-from api.places.types import PlaceId
 from api.ratelimit import rate_limit, session_rate_limit
-from api.sessions import service
-from api.sessions.cache import CandidateCache
-from api.sessions.types import (
+from api.services import groups_service
+from api.services import sessions_service as service
+from api.types.places_types import PlaceId
+from api.types.sessions_types import (
     CreateSessionRequest,
     ResultsResponse,
     SearchRequest,
     SearchResponse,
     SessionResponse,
 )
+from api.utils.candidate_cache import CandidateCache
+from api.utils.media import stream_upstream
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -32,11 +33,16 @@ async def create_session(
     payload: CreateSessionRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SessionResponse:
-    session_id = await service.create_session(db, payload)
+    participant_id = None
+    if payload.mode == "group":
+        session_id, participant_id = await groups_service.create_group_session(db, payload)
+    else:
+        session_id = await service.create_session(db, payload)
     return SessionResponse(
         session_id=session_id,
         mode=payload.mode,
         share_url=f"/join/{session_id}" if payload.mode == "group" else None,
+        participant_id=participant_id,
     )
 
 

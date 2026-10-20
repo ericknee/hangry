@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import Button from "../../components/Button";
+import type { VoteValue } from "../../types";
 
 export type DeckItem = { id: string; content: ReactNode };
 
@@ -15,7 +16,8 @@ const ENTER_FROM_PX = 500;
 const ENTER_STAGGER_S = 0.03;
 const SPRING = { type: "spring", stiffness: 450, damping: 25 } as const; // Damping - higher value means less wiggle
 
-type Exit = { id: string; dir: -1 | 1 };
+// A card leaves sideways when browsing (x) and vertically when voted on (y: up = dislike, down = like).
+type Exit = { id: string; dir: -1 | 1; axis: "x" | "y" };
 
 function slotStyle(slot: number) {
   const depth = Math.min(slot, VISIBLE_SLOTS - 1);
@@ -32,6 +34,8 @@ function DeckCard({
   slot,
   count,
   exitDir,
+  exitAxis,
+  voteEnabled,
   pulled,
   enterDelay,
   onSwipe,
@@ -42,9 +46,11 @@ function DeckCard({
   slot: number;
   count: number;
   exitDir: -1 | 1 | null;
+  exitAxis: "x" | "y";
+  voteEnabled: boolean; // vertical swipes vote; without it they do nothing
   pulled: boolean; // the bottom card is sliding out from under the deck to land on top
   enterDelay: number | null; // set only for cards added after the first render
-  onSwipe: (dir: -1 | 1) => boolean; // true if the deck started a move
+  onSwipe: (dir: -1 | 1, axis: "x" | "y") => boolean; // true if the deck started a move
   onExited: () => void;
   onPulled: () => void;
 }) {
@@ -77,10 +83,13 @@ function DeckCard({
   // The top card flies out when a swipe or the Next button asks for it.
   useEffect(() => {
     if (!isTop || exitDir === null) return;
-    const controls = animate(x, exitDir * FLY_OUT_PX, { duration: reduceMotion ? 0 : SLIDE_OUT_S, ease: "easeIn" });
+    const controls = animate(exitAxis === "y" ? y : x, exitDir * FLY_OUT_PX, {
+      duration: reduceMotion ? 0 : SLIDE_OUT_S,
+      ease: "easeIn",
+    });
     controls.then(() => onExitedRef.current());
     return () => controls.stop();
-  }, [isTop, exitDir, reduceMotion, x]);
+  }, [isTop, exitDir, exitAxis, reduceMotion, x, y]);
 
   // The bottom card slides out to the side from under the deck (the reverse of the fly-out).
   useEffect(() => {
@@ -115,14 +124,23 @@ function DeckCard({
         dragElastic={0.8}
         onDragEnd={(_, info) => {
           const { offset, velocity } = info;
+          const vertical = Math.abs(offset.y) > Math.abs(offset.x);
+          if (
+            voteEnabled &&
+            vertical &&
+            (Math.abs(offset.y) > SWIPE_DISTANCE_PX || Math.abs(velocity.y) > SWIPE_VELOCITY)
+          ) {
+            // Up (negative y) dislikes, down likes; a refused swipe (mid-animation) resets the card.
+            if (!onSwipe(offset.y < 0 ? -1 : 1, "y")) springBack();
+            return;
+          }
           if (Math.abs(offset.x) > SWIPE_DISTANCE_PX || Math.abs(velocity.x) > SWIPE_VELOCITY) {
-            const started = onSwipe(offset.x < 0 ? -1 : 1);
+            const started = onSwipe(offset.x < 0 ? -1 : 1, "x");
             // Only a left swipe that started an exit leaves the card flying out. A right swipe
             // drops the card back one place as the bottom card comes up; a refused swipe resets it.
             if (!started || offset.x > 0) springBack();
             return;
           }
-          // TODO(future): a downward swipe (offset.y > ~120) will interact with the restaurant (choose/save).
           springBack();
         }}
       >
@@ -135,14 +153,24 @@ function DeckCard({
 function RoundButton({
   label,
   onClick,
+  className,
+  pressed,
   children,
 }: {
   label: string;
   onClick: () => void;
+  className?: string;
+  pressed?: boolean;
   children: ReactNode;
 }) {
   return (
-    <Button variant="icon" aria-label={label} onClick={onClick}>
+    <Button
+      variant="icon"
+      aria-label={label}
+      aria-pressed={pressed}
+      className={className}
+      onClick={onClick}
+    >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         {children}
       </svg>
@@ -153,14 +181,22 @@ function RoundButton({
 /**
  * A deck of cards that cycles: swiping the top card sends it to the bottom, "previous" brings the
  * bottom card back. Cards added later slide in from the right and join the bottom of the deck.
+ *
+ * With `onVote` the deck also takes votes: swipe down (or press the check) to like the top card, up
+ * (or the cross) to dislike it. A voted card leaves vertically and joins the bottom like any other,
+ * and can be voted on again later. `votes` only marks which button reflects the top card's vote.
  */
 export default function CardDeck({
   items,
   onTopChange,
+  onVote,
+  votes,
 }: {
   items: DeckItem[];
   /** Called with the id of the top card on mount and whenever it changes. */
   onTopChange?: (id: string) => void;
+  onVote?: (id: string, value: VoteValue) => void;
+  votes?: Record<string, VoteValue>;
 }) {
   const [order, setOrder] = useState<string[]>(() => items.map((i) => i.id));
   const [exit, setExit] = useState<Exit | null>(null);
@@ -183,7 +219,16 @@ export default function CardDeck({
 
   function requestExit(dir: -1 | 1): boolean {
     if (exit || pulledId || ordered.length < 2) return false;
-    setExit({ id: topId, dir });
+    setExit({ id: topId, dir, axis: "x" });
+    return true;
+  }
+
+  // The vote counts even in a one-card deck, which has nowhere to send the card.
+  function requestVote(value: VoteValue): boolean {
+    if (exit || pulledId || !onVote) return false;
+    onVote(topId, value);
+    if (ordered.length < 2) return false;
+    setExit({ id: topId, dir: value, axis: "y" });
     return true;
   }
 
@@ -213,14 +258,40 @@ export default function CardDeck({
             slot={slot}
             count={ordered.length}
             exitDir={exit?.id === id ? exit.dir : null}
+            exitAxis={exit?.id === id ? exit.axis : "x"}
+            voteEnabled={onVote !== undefined}
             pulled={pulledId === id}
             enterDelay={newIndex.has(id) ? newIndex.get(id)! * ENTER_STAGGER_S : null}
-            onSwipe={(dir) => (dir < 0 ? requestExit(-1) : previous())}
+            onSwipe={(dir, axis) =>
+              axis === "y" ? requestVote(dir) : dir < 0 ? requestExit(-1) : previous()
+            }
             onExited={finishExit}
             onPulled={finishPull}
           />
         ))}
       </div>
+      {onVote && (
+        <div className="flex items-center gap-10">
+          <RoundButton
+            label="Dislike"
+            pressed={votes?.[topId] === -1}
+            className={votes?.[topId] === -1 ? "ring-2 ring-danger text-danger" : "text-danger"}
+            onClick={() => requestVote(-1)}
+          >
+            <path d="M6 6l12 12M18 6L6 18" />
+          </RoundButton>
+          <RoundButton
+            label="Like"
+            pressed={votes?.[topId] === 1}
+            className={
+              votes?.[topId] === 1 ? "ring-2 ring-green-600 text-green-700" : "text-green-700"
+            }
+            onClick={() => requestVote(1)}
+          >
+            <path d="M5 13l4 4L19 7" />
+          </RoundButton>
+        </div>
+      )}
       <div className="mt-4 flex items-center gap-8">
         <RoundButton label="Previous restaurant" onClick={previous}>
           <path d="M15 5l-7 7 7 7" />

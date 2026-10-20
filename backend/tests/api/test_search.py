@@ -1,5 +1,5 @@
 import httpx
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fakes import PLACE, SETUP, FakeDb, FakePlaces, post_search, record
 
 

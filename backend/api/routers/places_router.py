@@ -6,9 +6,9 @@ from agent.places_client import PlacesClient
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from api.deps import get_places
-from api.errors import PLACES_ERRORS, describe_error
-from api.places.types import CityLocation, CityPrediction, PlaceId
+from api.errors.places_errors import PLACES_ERRORS, describe_error
 from api.ratelimit import rate_limit
+from api.types.places_types import CityLocation, CityPrediction, PlaceId
 
 router = APIRouter(prefix="/places", tags=["places"])
 

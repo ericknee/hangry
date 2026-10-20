@@ -9,4 +9,7 @@ export const ROUTES = {
   setupDietary: "/session/:sessionId/setup/dietary",
   setupTravel: "/session/:sessionId/setup/travel",
   shortlist: "/session/:sessionId/shortlist",
+  // Group sessions: the invite link, and one page that shows lobby, voting, waiting or result.
+  join: "/join/:sessionId",
+  group: "/session/:sessionId/group",
 } as const;
