@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.database import get_db
 from api.db.models import SessionRecord
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 
 
 def get_places(request: Request) -> PlacesClient:

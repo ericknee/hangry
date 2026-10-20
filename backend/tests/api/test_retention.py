@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from api.sessions.retention import purge_expired_sessions
+from api.jobs.retention import purge_expired_sessions
 
 
 class FakeResult:
@@ -39,7 +39,7 @@ async def test_purge_deletes_sessions_older_than_the_retention_period():
 async def test_main_purges_once_and_closes_the_engine(monkeypatch):
     from contextlib import asynccontextmanager
 
-    from api.sessions import retention
+    from api.jobs import retention
 
     db = FakeDb()
     disposed = []

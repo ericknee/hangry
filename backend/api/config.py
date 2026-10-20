@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     environment: Literal["dev", "prod"] = "dev"
     # Folder with the built frontend (client/dist). Unset in dev, where Vite serves the pages.
     static_dir: Path | None = None
-    # Session rows older than this are deleted (see api/sessions/retention.py).
+    # Session rows older than this are deleted (see api/jobs/retention.py).
     session_retention_days: int = 30
 
     # Proxies in front of the app that append to X-Forwarded-For: 1 for Cloud Run alone, 2 for

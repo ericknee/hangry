@@ -7,8 +7,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator
 
-from api.places.types import PlaceId
-from api.sessions.types import DisplayName, RestaurantOut
+from api.types.places_types import PlaceId
+from api.types.sessions_types import DisplayName, RestaurantOut
 
 # Group sessions start in the lobby; the solo-only "setup" phase never applies to them.
 GroupPhase = Literal["lobby", "swiping", "done"]

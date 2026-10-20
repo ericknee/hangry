@@ -2,7 +2,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
-from api.places.types import PlaceId
+from api.types.places_types import PlaceId
 
 SessionMode = Literal["solo", "group"]
 # Stored per member and shown to the others in the session; blank means "pick one for me".

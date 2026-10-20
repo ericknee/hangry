@@ -2,7 +2,7 @@ import httpx
 from agent.types import Candidate
 from api.deps import get_candidate_cache, get_places
 from api.main import app
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fastapi.testclient import TestClient
 
 

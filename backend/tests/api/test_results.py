@@ -1,4 +1,4 @@
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fakes import PLACE, FakeDb, FakePlaces, get_results, post_search, record
 
 

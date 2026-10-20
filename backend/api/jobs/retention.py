@@ -1,7 +1,7 @@
 """Deletes old session rows so coordinates and setup answers aren't kept longer than promised.
 
 The privacy policy says sessions are deleted after 30 days. Run as a one-shot job
-(`python -m api.sessions.retention`), e.g. a Cloud Run Job triggered daily by Cloud Scheduler. It is
+(`python -m api.jobs.retention`), e.g. a Cloud Run Job triggered daily by Cloud Scheduler. It is
 not a loop inside the API process because Cloud Run pauses CPU between requests, so a background
 task there may not run.
 """

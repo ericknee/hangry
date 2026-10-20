@@ -1,5 +1,5 @@
 # One image for the whole app: the API serves the built React frontend from the same origin.
-# The same image runs the daily purge job: override the command with `python -m api.sessions.retention`.
+# The same image runs the daily purge job: override the command with `python -m api.jobs.retention`.
 
 # --- Stage 1: build the frontend -------------------------------------------------------------
 FROM node:22-slim AS client

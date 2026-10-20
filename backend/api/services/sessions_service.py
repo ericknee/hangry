@@ -11,37 +11,21 @@ from agent.types import Candidate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.db.models import SessionRecord
-from api.errors import PLACES_ERRORS, describe_error
-from api.sessions.cache import CandidateCache
-from api.sessions.types import CreateSessionRequest, PhotoOut, RestaurantOut, SearchRequest
+from api.errors.places_errors import PLACES_ERRORS, describe_error
+from api.errors.sessions_errors import (
+    PhotoFetchFailed,
+    PhotoNotFound,
+    ResultsNotFound,
+    SearchFailed,
+    SessionHasNoLocation,
+    SessionNotFound,
+)
+from api.types.sessions_types import CreateSessionRequest, PhotoOut, RestaurantOut, SearchRequest
+from api.utils.candidate_cache import CandidateCache
 
 # 3 decimals is roughly 110 m: coarse enough to hide the exact spot, fine enough
 # that the search (which reads these stored coordinates) is off by <~80 m.
 COORD_DECIMALS = 3
-
-
-class SessionNotFound(Exception):
-    pass
-
-
-class SessionHasNoLocation(Exception):
-    pass
-
-
-class SearchFailed(Exception):
-    """The Places search errored out (network failure, bad key, quota)."""
-
-
-class ResultsNotFound(Exception):
-    """No cached results for the session: never searched, expired, or the server restarted."""
-
-
-class PhotoNotFound(Exception):
-    """The session's results, the place, or the place's photo is not available."""
-
-
-class PhotoFetchFailed(Exception):
-    """Fetching the image from Google failed (network, bad key, quota, expired name)."""
 
 
 def _initial_state(payload: CreateSessionRequest) -> dict:

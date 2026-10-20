@@ -4,7 +4,7 @@ from api.db.database import get_db
 from api.db.models import SessionRecord
 from api.deps import get_candidate_cache, get_places
 from api.main import app
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fastapi.testclient import TestClient
 
 SETUP = {"after": "dinner", "price_levels": [2], "dietary": "vegan", "mode": "walk", "minutes": 10}

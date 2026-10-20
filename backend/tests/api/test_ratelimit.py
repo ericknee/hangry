@@ -2,7 +2,7 @@ from api.config import Settings
 from api.deps import get_candidate_cache, get_places
 from api.main import create_app
 from api.ratelimit import RateLimiter, client_ip
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 from fastapi import Request
 from fastapi.testclient import TestClient
 

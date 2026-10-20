@@ -1,4 +1,4 @@
-from api.sessions.cache import CandidateCache
+from api.utils.candidate_cache import CandidateCache
 
 
 def test_cache_entries_expire():
