@@ -3,6 +3,7 @@
 import asyncio
 
 import pytest
+from agent.types import Candidate
 from api.db.models import ParticipantRecord, SessionRecord, VoteRecord
 from api.errors.groups_errors import (
     AlreadySubmitted,
@@ -14,10 +15,40 @@ from api.errors.groups_errors import (
 )
 from api.errors.sessions_errors import SessionNotFound
 from api.services import groups_service as svc
+from api.types.groups_types import VoteIn
 from api.types.sessions_types import CreateSessionRequest
+from api.utils.candidate_cache import CandidateCache
 from sqlalchemy import func, select
 
 PLACES = ["p1", "p2", "p3"]
+
+
+def _candidate(place_id: str) -> Candidate:
+    return Candidate(
+        place_id=place_id, name="n", address="a", rating=4.0, price_level=None, aggregate_score=None
+    )
+
+
+class ExpireAfterFirstGet:
+    """Wraps a `CandidateCache` so a session's entry is gone right after the first `.get()` —
+    simulating the 30-minute cache expiring mid-request. Pins the fix for the bug where
+    `submit_votes`/`end_session` re-read the cache a second time, after votes were already
+    committed, to build the tally: if that regresses, the second read finds nothing and
+    `ResultsNotFound` leaves the session stuck in "swiping" even though votes were saved."""
+
+    def __init__(self, cache: CandidateCache) -> None:
+        self._cache = cache
+
+    def get(self, session_id: str) -> list[Candidate] | None:
+        value = self._cache.get(session_id)
+        self._cache.delete(session_id)
+        return value
+
+    def set(self, session_id: str, candidates: list[Candidate]) -> None:
+        self._cache.set(session_id, candidates)
+
+    def delete(self, session_id: str) -> None:
+        self._cache.delete(session_id)
 
 
 async def make_session(sessions, *, mode="group", phase="lobby") -> str:
@@ -230,6 +261,43 @@ async def test_finish_records_winner_and_phase(pg_sessions):
     async with pg_sessions() as db:
         record = await db.get(SessionRecord, sid)
     assert (record.phase, record.final_pick_place_id) == ("done", "p2")
+
+
+async def test_submit_votes_finishes_even_if_the_cache_expires_right_after_reading_the_deck(
+    pg_sessions,
+):
+    sid = await make_session(pg_sessions, phase="swiping")
+    me = await join_in_lobby_then_start(pg_sessions, sid)
+    cache = ExpireAfterFirstGet(CandidateCache())
+    cache.set(sid, [_candidate(p) for p in PLACES])
+
+    async with pg_sessions() as db:
+        await svc.submit_votes(db, cache, sid, me.id, [VoteIn(place_id=p, value=1) for p in PLACES])
+
+    async with pg_sessions() as db:
+        record = await db.get(SessionRecord, sid)
+    assert record.phase == "done"
+    assert record.final_pick_place_id in PLACES
+
+
+async def test_end_session_finishes_even_if_the_cache_expires_right_after_reading_the_deck(
+    pg_sessions,
+):
+    sid = await make_session(pg_sessions, phase="swiping")
+    async with pg_sessions() as db:
+        host = ParticipantRecord(session_id=sid, name="Host", is_host=True)
+        db.add(host)
+        await db.commit()
+    cache = ExpireAfterFirstGet(CandidateCache())
+    cache.set(sid, [_candidate(p) for p in PLACES])
+
+    async with pg_sessions() as db:
+        await svc.end_session(db, cache, sid, host.id)
+
+    async with pg_sessions() as db:
+        record = await db.get(SessionRecord, sid)
+    assert record.phase == "done"
+    assert record.final_pick_place_id in PLACES
 
 
 async def test_deleting_a_session_cascades_to_members_and_votes(pg_sessions):

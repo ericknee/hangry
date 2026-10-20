@@ -260,17 +260,24 @@ def deck_place_ids(cache: CandidateCache, session_id: str) -> list[str]:
     return [r.place_id for r in sessions_service.ranked_restaurants(cache, session_id)]
 
 
-async def save_votes(
+async def _record_vote(
     db: AsyncSession, session_id: str, participant_id: str, votes: Mapping[str, int]
 ) -> None:
-    """Store a member's votes and mark them submitted, in one transaction. The caller has already
-    checked that `votes` covers the deck."""
+    """Store a member's votes and mark them submitted. Caller commits."""
     await _lock_swiping(db, session_id)
     member = await get_member(db, session_id, participant_id)
     if member.submitted_at is not None:
         raise AlreadySubmitted(participant_id)
     groups_repository.add_votes(db, participant_id, votes)
     member.submitted_at = datetime.now(UTC)
+
+
+async def save_votes(
+    db: AsyncSession, session_id: str, participant_id: str, votes: Mapping[str, int]
+) -> None:
+    """Store a member's votes and mark them submitted, in one transaction. The caller has already
+    checked that `votes` covers the deck."""
+    await _record_vote(db, session_id, participant_id, votes)
     await db.commit()
 
 
@@ -292,34 +299,51 @@ async def submit_votes(
     participant_id: str,
     votes: Sequence[VoteIn],
 ) -> None:
-    """A member's one submit: it must cover the whole deck. The last submit decides the winner."""
-    by_place = _check_deck(votes, deck_place_ids(cache, session_id))
-    await save_votes(db, session_id, participant_id, by_place)
+    """A member's one submit: it must cover the whole deck. The last submit decides the winner.
+
+    The deck is read from the cache once, before anything is written, and reused for the tally if
+    this is the last submit — so a cache entry that expires mid-request can only fail before any
+    write, never strand a session after one has already landed.
+    """
+    deck = deck_place_ids(cache, session_id)
+    by_place = _check_deck(votes, deck)
+    await _record_vote(db, session_id, participant_id, by_place)
     if await all_submitted(db, session_id):
-        await finalize(db, cache, session_id)
+        await _finish_with(db, session_id, deck)
+    await db.commit()
 
 
-async def end_early(db: AsyncSession, session_id: str, place_ids: Sequence[str]) -> None:
-    """Submit for every member still swiping, with a 0 (no vote) for each place. Their unsent swipes
-    are discarded."""
+async def _zero_fill(db: AsyncSession, session_id: str, place_ids: Sequence[str]) -> None:
+    """Submit for every member still swiping, with a 0 (no vote) for each place. Caller commits."""
     await _lock_swiping(db, session_id)
     now = datetime.now(UTC)
     for member in await groups_repository.list_members(db, session_id):
         if member.submitted_at is None:
             groups_repository.add_zero_votes(db, member.id, place_ids)
             member.submitted_at = now
+
+
+async def end_early(db: AsyncSession, session_id: str, place_ids: Sequence[str]) -> None:
+    """Submit for every member still swiping, with a 0 (no vote) for each place. Their unsent swipes
+    are discarded."""
+    await _zero_fill(db, session_id, place_ids)
     await db.commit()
 
 
 async def end_session(
     db: AsyncSession, cache: CandidateCache, session_id: str, participant_id: str
 ) -> None:
-    """The host ends swiping now; whoever has not submitted gets no votes."""
+    """The host ends swiping now; whoever has not submitted gets no votes.
+
+    Reads the deck once, before any write, for the same reason as `submit_votes`.
+    """
     host = await get_member(db, session_id, participant_id)
     if not host.is_host:
         raise NotHost(participant_id)
-    await end_early(db, session_id, deck_place_ids(cache, session_id))
-    await finalize(db, cache, session_id)
+    deck = deck_place_ids(cache, session_id)
+    await _zero_fill(db, session_id, deck)
+    await _finish_with(db, session_id, deck)
+    await db.commit()
 
 
 async def all_submitted(db: AsyncSession, session_id: str) -> bool:
@@ -330,21 +354,25 @@ async def load_votes(db: AsyncSession, session_id: str) -> Sequence[tuple[str, s
     return await groups_repository.load_votes(db, session_id)
 
 
-async def finish(db: AsyncSession, session_id: str, final_pick_place_id: str) -> None:
-    """Record the winner and move the session to done. A second call changes nothing."""
+async def _set_winner(db: AsyncSession, session_id: str, final_pick_place_id: str) -> None:
+    """Record the winner and move the session to done. A second call changes nothing. Caller
+    commits."""
     record = await _lock_group_session(db, session_id)
     if record.phase == "done":
         return
     record.phase = "done"
     record.final_pick_place_id = final_pick_place_id
+
+
+async def finish(db: AsyncSession, session_id: str, final_pick_place_id: str) -> None:
+    await _set_winner(db, session_id, final_pick_place_id)
     await db.commit()
 
 
-async def finalize(db: AsyncSession, cache: CandidateCache, session_id: str) -> None:
-    """Count the votes and record the winner."""
-    deck = deck_place_ids(cache, session_id)
+async def _finish_with(db: AsyncSession, session_id: str, deck: Sequence[str]) -> None:
+    """Tally against an already-read deck and record the winner. Caller commits."""
     tallies = tally_votes(await load_votes(db, session_id), deck)
-    await finish(db, session_id, tallies[0].place_id)
+    await _set_winner(db, session_id, tallies[0].place_id)
 
 
 async def group_result(
