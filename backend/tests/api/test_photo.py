@@ -43,7 +43,7 @@ def get_photo(cache: CandidateCache, places: FakePlaces, place_id: str = "p1"):
 
 
 def cache_with(*candidates: Candidate) -> CandidateCache:
-    cache = CandidateCache()
+    cache = CandidateCache(clock=lambda: 0.0)  # frozen, so max-age is exactly the TTL
     cache.set("s1", list(candidates))
     return cache
 

@@ -95,8 +95,9 @@ prod is same-origin.
 Organized by layer, one file per feature in each folder (`<feature>_<layer>.py`, features: `sessions`,
 `places`, `groups`):
 - `routers/` — HTTP only: parse the request, run dependencies, map domain errors to status codes.
-- `services/` — the logic. Raises domain errors; today `sessions_service.py` also queries the DB directly.
-- `repositories/` — database reads and writes (`groups_repository.py`; sessions has none yet).
+- `services/` — the rules and orchestration. Raise domain errors and own the transaction (they commit).
+- `repositories/` — database queries and writes only: no rules, no commits. `groups_repository.lock_session`
+  takes the row lock that `groups_service` relies on so concurrent joins/starts run one at a time.
 - `types/` — the request/response models (Pydantic).
 - `errors/` — domain exceptions (`sessions_errors.py`, `groups_errors.py`) and the Places client error
   tuple (`places_errors.py`).
@@ -120,6 +121,17 @@ Imports go one way: router -> service -> repository -> models; errors, types and
   `stream_upstream`. Photo names expire, so only the cached candidate holds them; the browser may cache
   the image for the 30-minute TTL. 404 if no photo, 502 on Places errors. `RestaurantOut.photo` carries
   the author credit Google requires; the card shows it and falls back to the cuisine gradient.
+- Group sessions (`routers/groups_router.py`, `services/groups_service.py`): `POST /sessions` with `mode: "group"` creates
+  the session in the `lobby` phase plus its host member and returns `participant_id`. The participant id is the
+  credential: REST calls send it as `X-Participant-Id`; `GET /sessions/{id}/events` (SSE) takes it as the
+  `participant_id` query param, so it appears in access logs. Endpoints under `/sessions/{id}`: `join`, `PATCH me`
+  (lobby only), `GET group` (the status snapshot, also the resync after an SSE reconnect), `events`, `start`
+  (host; one Places search per distinct craving, merged, phase flips to `swiping` only if all succeed; a retry
+  reuses the searches that worked; zero places leaves the lobby), `votes` (one submit covering the whole
+  deck; the last submit decides the winner), `end` (host; unsubmitted members get 0 votes). Winner = highest sum
+  of vote values, ties by search rank. Votes: positive like, negative dislike, 0 only written by the server.
+  Max 8 members. The SSE stream, the start guard and the in-memory cache all rely on the single instance, and a restart
+  loses the shortlist for everyone (the group has to start over). Photo URLs are gated by session id only (`<img>` cannot send the header).
 - Client IP (`client_ip` in `api/ratelimit.py`): the Nth entry from the right of `X-Forwarded-For`, N = `TRUSTED_PROXY_COUNT`
   (1 = Cloud Run alone, 2 = Cloudflare -> Cloud Run; default 1). The left side is client-written, so it is never trusted;
   uvicorn runs with `--no-proxy-headers`. Wrong count = shared bucket (too low) or forgeable IP (too high): after deploy,
@@ -147,7 +159,16 @@ Organized by feature under `client/src/features/`:
   is rendered by `Page` on every screen. **Update the policy whenever data flows change** (what is stored, who
   receives it, retention).
 - `shortlist/` — `ShortlistPage` (`/session/:sessionId/shortlist`): a swipeable `CardDeck` of
-  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest.
+  `RestaurantCard`s, top 3 first, "More recommendations" appends the rest. `usePhotoBatches` decides which cards may
+  load their (billed) photo. `CardDeck` has an optional vote mode (`onVote`): swipe down = like, up = dislike, plus
+  buttons; left/right still only browse. Solo does not use it.
+- `group/` — group sessions. The host starts from "Plan with friends" on the location page (`/search?mode=group`),
+  answers the setup questions as usual (the last page goes to the lobby instead of searching), then taps Start in
+  the lobby. Guests open `/join/:sessionId` (optional name and craving). Everyone lands on `GroupSessionPage`
+  (`/session/:sessionId/group`), which shows `LobbyScreen`, `VoteScreen`, `WaitingScreen` or `ResultScreen` from the
+  server status. `useGroupStatus` keeps the status current (SSE stream plus a refetch when the tab is visible again).
+  `groupStorage.ts` keeps the member id and the unsent vote draft in **localStorage** (a stored id also marks the
+  session as a group one for the setup pages). Unlike solo, the setup answers are only sent at Start.
 
 `components/` holds only shared UI (`OptionChips`, `LoadingScreen`, `Toast`). Errors are shown as a
 top-of-screen toast: call `useToast().showError(userMessage(error, "friendly fallback"))` (`userMessage`
@@ -210,7 +231,7 @@ pattern; build concrete paths with react-router's `generatePath`. `api/` is the 
 
 ## Not built yet
 
-- Group sessions: invites, the join page (the API returns a `share_url` for `mode: "group"` that
-  nothing serves), host-location search.
+- Group sessions: no handling of a host who abandons the lobby, no live "x of y" count beyond the member badges, and
+  nothing is stored client-side to resume a host's unfinished setup in a different tab.
 - The cuisine veto question (selection logic exists in `veto/questions.py`, no endpoint or page).
 - Session resume after a refresh (answers live in `sessionStorage`), a persisted final pick.

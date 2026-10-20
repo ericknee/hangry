@@ -8,6 +8,7 @@ import OptionChips from "../../components/OptionChips";
 import SetupStep from "./SetupStep";
 import { ROUTES } from "../../routes";
 import type { TravelMode } from "../../types";
+import { loadParticipantId } from "../group/groupStorage";
 import { MAX_MINUTES, MIN_MINUTES, MINUTES_STEP } from "./setupAnswers";
 import { useSetupAnswers } from "./useSetupAnswers";
 
@@ -26,6 +27,12 @@ export default function TravelPage() {
   const [searching, setSearching] = useState(false);
 
   async function handleNext() {
+    // A group host doesn't search here: the answers wait in this tab until they tap Start in the
+    // lobby, once everyone has had the chance to join and add a craving.
+    if (loadParticipantId(sessionId)) {
+      navigate(generatePath(ROUTES.group, { sessionId }));
+      return;
+    }
     setSearching(true);
     const shortlistPath = generatePath(ROUTES.shortlist, { sessionId });
     try {

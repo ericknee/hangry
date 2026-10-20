@@ -51,6 +51,7 @@ export async function createSession(params: CreateSessionParams): Promise<Create
     mode: params.mode,
     initial_query: params.initialQuery,
     location: params.location ?? null,
+    name: params.name?.trim() || null,
   };
   return apiRequest<CreateSessionResponse>("/api/sessions", { method: "POST", body });
 }

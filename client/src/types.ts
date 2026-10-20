@@ -17,6 +17,17 @@ export type ResultsResponse = Schemas["ResultsResponse"];
 export type CityPrediction = Schemas["CityPrediction"];
 export type CityLocation = Schemas["CityLocation"];
 
+export type JoinRequest = Schemas["JoinRequest"];
+export type JoinResponse = Schemas["JoinResponse"];
+export type UpdateMemberRequest = Schemas["UpdateMemberRequest"];
+export type MeOut = Schemas["MeOut"];
+export type MemberOut = Schemas["MemberOut"];
+export type GroupStatus = Schemas["GroupStatus"];
+export type GroupPhase = GroupStatus["phase"];
+export type GroupResult = Schemas["GroupResult"];
+export type PlaceTally = Schemas["PlaceTally"];
+export type SubmitVotesRequest = Schemas["SubmitVotesRequest"];
+
 // Setup option values, taken from the search request so they can't drift from the backend.
 export type After = SearchRequest["after"];
 export type Dietary = NonNullable<SearchRequest["dietary"]>;
@@ -41,4 +52,9 @@ export interface CreateSessionParams {
   mode: SessionMode;
   initialQuery: string;
   location?: PendingLocation | null;
+  /** Group sessions only: the host's display name; blank gets a generated one. */
+  name?: string;
 }
+
+/** A member's vote on one place: 1 = like, -1 = dislike. */
+export type VoteValue = 1 | -1;

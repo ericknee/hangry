@@ -99,6 +99,73 @@
         "title": "CreateSessionRequest",
         "type": "object"
       },
+      "GroupResult": {
+        "properties": {
+          "no_likes": {
+            "title": "No Likes",
+            "type": "boolean"
+          },
+          "tallies": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceTally"
+            },
+            "title": "Tallies",
+            "type": "array"
+          },
+          "winner": {
+            "$ref": "#/components/schemas/RestaurantOut"
+          }
+        },
+        "required": [
+          "winner",
+          "no_likes",
+          "tallies"
+        ],
+        "title": "GroupResult",
+        "type": "object"
+      },
+      "GroupStatus": {
+        "description": "The whole group state for one member. `GET .../group` returns it and the SSE stream pushes\nit on every change, so the client handles both the same way.",
+        "properties": {
+          "me": {
+            "$ref": "#/components/schemas/MeOut"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOut"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "phase": {
+            "enum": [
+              "lobby",
+              "swiping",
+              "done"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroupResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "phase",
+          "me",
+          "members",
+          "result"
+        ],
+        "title": "GroupStatus",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -110,6 +177,54 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JoinRequest": {
+        "properties": {
+          "craving": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Craving"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "JoinRequest",
+        "type": "object"
+      },
+      "JoinResponse": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "participant_id",
+          "name"
+        ],
+        "title": "JoinResponse",
         "type": "object"
       },
       "LocationInput": {
@@ -153,6 +268,65 @@
         "title": "LocationInput",
         "type": "object"
       },
+      "MeOut": {
+        "properties": {
+          "craving": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Craving"
+          },
+          "is_host": {
+            "title": "Is Host",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "submitted": {
+            "title": "Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "craving",
+          "is_host",
+          "submitted"
+        ],
+        "title": "MeOut",
+        "type": "object"
+      },
+      "MemberOut": {
+        "description": "What other members see about a member. No id, no craving.",
+        "properties": {
+          "is_host": {
+            "title": "Is Host",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "submitted": {
+            "title": "Submitted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "is_host",
+          "submitted"
+        ],
+        "title": "MemberOut",
+        "type": "object"
+      },
       "PhotoOut": {
         "description": "Credit Google requires wherever the photo is shown. The image itself is served at\n`GET /sessions/{id}/restaurants/{place_id}/photo`.",
         "properties": {
@@ -184,6 +358,50 @@
           "author_uri"
         ],
         "title": "PhotoOut",
+        "type": "object"
+      },
+      "PlaceTally": {
+        "properties": {
+          "disliked_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disliked By",
+            "type": "array"
+          },
+          "dislikes": {
+            "title": "Dislikes",
+            "type": "integer"
+          },
+          "liked_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Liked By",
+            "type": "array"
+          },
+          "likes": {
+            "title": "Likes",
+            "type": "integer"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "place_id",
+          "score",
+          "likes",
+          "dislikes",
+          "liked_by",
+          "disliked_by"
+        ],
+        "title": "PlaceTally",
         "type": "object"
       },
       "RestaurantOut": {
@@ -427,6 +645,55 @@
         "title": "SessionResponse",
         "type": "object"
       },
+      "SubmitVotesRequest": {
+        "description": "One vote for every place in the member's deck; the service rejects an incomplete deck.",
+        "properties": {
+          "votes": {
+            "items": {
+              "$ref": "#/components/schemas/VoteIn"
+            },
+            "maxItems": 200,
+            "title": "Votes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "votes"
+        ],
+        "title": "SubmitVotesRequest",
+        "type": "object"
+      },
+      "UpdateMemberRequest": {
+        "description": "Lobby edits. Rejected with 409 once the host has started.",
+        "properties": {
+          "craving": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Craving"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "UpdateMemberRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -465,6 +732,27 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VoteIn": {
+        "properties": {
+          "place_id": {
+            "pattern": "^[A-Za-z0-9_-]{1,256}$",
+            "title": "Place Id",
+            "type": "string"
+          },
+          "value": {
+            "maximum": 5.0,
+            "minimum": -5.0,
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "place_id",
+          "value"
+        ],
+        "title": "VoteIn",
         "type": "object"
       }
     }
@@ -647,6 +935,288 @@
         ]
       }
     },
+    "/api/sessions/{session_id}/end": {
+      "post": {
+        "description": "Host only: submit for everyone still swiping (no votes) and show the result.",
+        "operationId": "end_session_api_sessions__session_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Session",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/events": {
+      "get": {
+        "operationId": "group_events_api_sessions__session_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "participant_id",
+            "required": true,
+            "schema": {
+              "title": "Participant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Group Events",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/group": {
+      "get": {
+        "description": "The same snapshot the event stream pushes; the fallback after a reconnect or a refocus.",
+        "operationId": "group_status_api_sessions__session_id__group_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Group Status",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/join": {
+      "post": {
+        "operationId": "join_session_api_sessions__session_id__join_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Join Session",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/me": {
+      "patch": {
+        "operationId": "update_me_api_sessions__session_id__me_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Me",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
     "/api/sessions/{session_id}/restaurants/{place_id}/photo": {
       "get": {
         "operationId": "restaurant_photo_api_sessions__session_id__restaurants__place_id__photo_get",
@@ -783,6 +1353,143 @@
         "summary": "Search Session",
         "tags": [
           "sessions"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/start": {
+      "post": {
+        "description": "Host only. Zero places leaves the session in the lobby so the host can change the setup.",
+        "operationId": "start_session_api_sessions__session_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Session",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/sessions/{session_id}/votes": {
+      "post": {
+        "operationId": "submit_votes_api_sessions__session_id__votes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-participant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Participant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitVotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Votes",
+        "tags": [
+          "groups"
         ]
       }
     }

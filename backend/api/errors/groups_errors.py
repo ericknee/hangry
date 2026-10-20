@@ -19,3 +19,19 @@ class NotAMember(Exception):
 
 class AlreadySubmitted(Exception):
     pass
+
+
+class NotSwiping(Exception):
+    """Votes and ending only make sense while the group is swiping."""
+
+
+class NotHost(Exception):
+    pass
+
+
+class InvalidVotes(Exception):
+    """The submitted votes don't match the deck (missing, extra or duplicate places)."""
+
+
+class StartInProgress(Exception):
+    """The host's search is already running, so a second start, join or edit must wait."""

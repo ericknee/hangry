@@ -43,6 +43,9 @@ class CandidateCache:
             return None
         return item[1]
 
+    def delete(self, session_id: str) -> None:
+        self._items.pop(session_id, None)
+
     def remaining_seconds(self, session_id: str) -> float:
         """Time left before the session's entry expires; 0 if there is none."""
         item = self._items.get(session_id)

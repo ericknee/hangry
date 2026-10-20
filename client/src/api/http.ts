@@ -63,8 +63,10 @@ export function userMessage(error: unknown, fallback: string): string {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   body?: unknown;
+  /** Extra request headers, e.g. the group member's credential. */
+  headers?: Record<string, string>;
   /** Defaults to true for GET and false for POST; see `apiRequest`. */
   retry?: boolean;
 }
@@ -82,13 +84,16 @@ function sleep(ms: number): Promise<void> {
 
 async function attempt<T>(
   path: string,
-  { method = "GET", body }: Pick<RequestOptions, "method" | "body">,
+  { method = "GET", body, headers }: Pick<RequestOptions, "method" | "body" | "headers">,
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
       method,
-      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      headers:
+        body === undefined && !headers
+          ? undefined
+          : { ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...headers },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -131,10 +136,10 @@ async function attempt<T>(
  * for a POST that is safe to repeat.
  */
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, retry: retryEnabled = method === "GET" } = options;
+  const { method = "GET", body, headers, retry: retryEnabled = method === "GET" } = options;
   for (let retry = 0; ; retry++) {
     try {
-      return await attempt<T>(path, { method, body });
+      return await attempt<T>(path, { method, body, headers });
     } catch (error) {
       const apiError =
         error instanceof ApiError

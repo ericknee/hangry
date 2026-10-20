@@ -1,6 +1,6 @@
 import { useState } from "react";
 import GoogleMapsAttribution from "../../components/GoogleMapsAttribution";
-import type { Restaurant } from "../../types";
+import type { Restaurant, VoteValue } from "../../types";
 import { cuisineGradient, cuisineLabel, distanceLabel } from "./format";
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -31,9 +31,12 @@ function PhotoCredit({ name, uri }: { name: string; uri: string | null }) {
 export default function RestaurantCard({
   restaurant,
   photoUrl,
+  vote,
 }: {
   restaurant: Restaurant;
   photoUrl?: string | null;
+  /** Group voting: the viewer's vote on this place, shown as a badge. */
+  vote?: VoteValue | null;
 }) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const showPhoto = Boolean(photoUrl) && !photoFailed;
@@ -62,6 +65,15 @@ export default function RestaurantCard({
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+        {vote && (
+          <span
+            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-sm font-semibold text-white shadow ${
+              vote === 1 ? "bg-green-600" : "bg-danger"
+            }`}
+          >
+            {vote === 1 ? "Liked" : "Disliked"}
+          </span>
+        )}
         <div className="relative flex flex-col gap-3">
           <h2 className="text-3xl font-semibold leading-tight text-white drop-shadow">{restaurant.name}</h2>
           <div className="flex flex-wrap gap-2">

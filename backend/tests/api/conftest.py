@@ -17,6 +17,20 @@ for _name in (
     "SESSION_CREATE_IP_PER_MIN",
     "AUTOCOMPLETE_IP_PER_MIN",
     "CITY_LOOKUP_IP_PER_MIN",
+    "JOIN_IP_PER_MIN",
+    "JOIN_SESSION",
+    "MEMBER_EDIT_IP_PER_MIN",
+    "MEMBER_EDIT_SESSION",
+    "START_IP_PER_MIN",
+    "START_SESSION",
+    "VOTES_IP_PER_MIN",
+    "VOTES_SESSION",
+    "END_IP_PER_MIN",
+    "END_SESSION",
+    "STATUS_IP_PER_MIN",
+    "STATUS_SESSION",
+    "EVENTS_IP_PER_MIN",
+    "EVENTS_SESSION",
 ):
     os.environ.setdefault(f"RATE_LIMIT_{_name}", "0")
 
